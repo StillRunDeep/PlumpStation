@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雨水泵站智能设计系统</title>
+<style>
+:root {
+  --color-primary: #1a5276;
+  --color-ag00: #1e8449;
+  --color-ag11: #2471a3;
+  --color-ag12: #876404;
+  --color-ag21: #6c3483;
+  --color-pass: #27ae60;
+  --color-warn: #e67e22;
+  --color-error: #c0392b;
+  --color-bg: #f4f6f8;
+  --color-card: #ffffff;
+  --radius: 10px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.10);
+  --font: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--color-bg);
+  color: #2c3e50;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.page-header {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #2e86c1 100%);
+  color: white;
+  padding: 28px 24px 22px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+.page-header h1 { font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+.page-header p  { font-size: 13px; opacity: 0.85; margin-top: 6px; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+
+/* ── Input Panel ── */
+.input-panel {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 28px;
+}
+.input-panel h2 { font-size: 16px; color: var(--color-primary); margin-bottom: 18px; border-bottom: 2px solid #d6eaf8; padding-bottom: 8px; }
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px 24px;
+  margin-bottom: 16px;
+}
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 13px; font-weight: 600; color: #555; }
+.form-group input {
+  border: 1.5px solid #ccd6e0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  transition: border-color .2s;
+  background: #fafcfe;
+}
+.form-group input:focus { outline: none; border-color: #2e86c1; background: #fff; }
+.form-group .hint { font-size: 11px; color: #888; }
+
+details { margin-top: 10px; }
+details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #2e86c1;
+  font-weight: 600;
+  padding: 4px 0;
+  user-select: none;
+}
+details summary:hover { text-decoration: underline; }
+details .adv-grid { margin-top: 12px; }
+
+.btn-calculate {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  margin: 20px auto 0;
+  padding: 12px 0;
+  background: linear-gradient(135deg, #2e86c1, var(--color-primary));
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: opacity .2s, transform .1s;
+  box-shadow: 0 3px 8px rgba(30,82,118,0.35);
+}
+.btn-calculate:hover  { opacity: .92; }
+.btn-calculate:active { transform: scale(.98); }
+
+/* ── Results ── */
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 720px) { .results-grid { grid-template-columns: 1fr; } }
+
+.agent-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 13px 18px;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-header .agent-label { font-size: 12px; opacity: .8; }
+.card-header .badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.25);
+}
+
+.card-ag00 .card-header { background: var(--color-ag00); }
+.card-ag11 .card-header { background: var(--color-ag11); }
+.card-ag12 .card-header { background: var(--color-ag12); }
+.card-ag21 .card-header { background: var(--color-ag21); }
+
+.card-body { padding: 16px 18px; }
+
+.steps-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+.steps-table th {
+  background: #eaf2fb;
+  color: #2c3e50;
+  font-size: 12px;
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 2px solid #d5e8f5;
+}
+.steps-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid #edf2f7;
+  vertical-align: top;
+}
+.steps-table tr:last-child td { border-bottom: none; }
+.steps-table tr:nth-child(even) td { background: #f9fbfe; }
+.steps-table .formula { color: #555; font-size: 12px; font-family: 'Courier New', monospace; }
+.steps-table .value { font-weight: 600; color: #1a5276; text-align: right; white-space: nowrap; }
+
+.result-summary {
+  border-radius: 7px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 2;
+}
+.result-summary.pass  { background: #eafaf1; border-left: 4px solid var(--color-pass); }
+.result-summary.warn  { background: #fef9e7; border-left: 4px solid var(--color-warn); }
+.result-summary.error { background: #fdedec; border-left: 4px solid var(--color-error); }
+.result-summary .key-value { display: flex; justify-content: space-between; gap: 8px; }
+.result-summary .kv-label { color: #555; }
+.result-summary .kv-val   { font-weight: 700; font-size: 14px; color: #1a252f; }
+
+.msg-list { list-style: none; padding: 0; font-size: 13px; }
+.msg-list li { padding: 4px 0; display: flex; align-items: flex-start; gap: 6px; }
+.msg-list .icon { flex-shrink: 0; }
+.msg-list .err  { color: var(--color-error); }
+.msg-list .wrn  { color: var(--color-warn); }
+.msg-list .ok   { color: var(--color-pass); }
+
+/* Water level diagram */
+.wl-diagram {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin-top: 10px;
+  padding: 12px;
+  background: #f0f4f8;
+  border-radius: 8px;
+}
+.wl-pool {
+  position: relative;
+  width: 40px;
+  flex-shrink: 0;
+  border: 2px solid #5d6d7e;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(to bottom, #d6eaf8, #a9cce3);
+}
+.wl-labels { flex: 1; position: relative; font-size: 11px; line-height: 1.3; }
+.wl-tick {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.wl-tick .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.wl-tick .dot-alarm { background: #c0392b; }
+.wl-tick .dot-start { background: #e67e22; }
+.wl-tick .dot-stop  { background: #27ae60; }
+.wl-tick .dot-pool  { background: #5d6d7e; }
+
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>雨水泵站智能设计系统</h1>
+  <p>基于多 Agent 协作的雨水泵站参数自动计算 Demo</p>
+</header>
+
+<main>
+  <!-- ══ 输入面板 ══ -->
+  <section class="input-panel">
+    <h2>设计参数输入</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>总设计流量 Q（m³/h）</label>
+        <input type="number" id="inp-Q" min="0.01" step="1" placeholder="例：360">
+        <span class="hint">泵站需排除的总设计流量</span>
+      </div>
+      <div class="form-group">
+        <label>工作水泵台数 N（台）</label>
+        <input type="number" id="inp-N" min="1" max="8" step="1" placeholder="例：3">
+        <span class="hint">不含备用泵，建议 2～6 台</span>
+      </div>
+      <div class="form-group">
+        <label>集水池占地面积 S（m²）</label>
+        <input type="number" id="inp-S" min="0.1" step="0.1" placeholder="例：4">
+        <span class="hint">集水池平面净面积</span>
+      </div>
+    </div>
+
+    <details>
+      <summary>高级参数（可选）</summary>
+      <div class="form-grid adv-grid">
+        <div class="form-group">
+          <label>电机功率（kW）</label>
+          <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：30">
+          <span class="hint">影响泵间距规则（R-LA-03）</span>
+        </div>
+        <div class="form-group">
+          <label>出水口超高 h_outlet（m）</label>
+          <input type="number" id="inp-h-outlet" min="0" step="0.1" placeholder="默认：1.0">
+          <span class="hint">集水池底到出水排放点高差补充量</span>
+        </div>
+        <div class="form-group">
+          <label>出水管总长（m）</label>
+          <input type="number" id="inp-pipe-len" min="1" step="1" placeholder="默认：50">
+          <span class="hint">用于估算管路摩擦损失</span>
+        </div>
+      </div>
+    </details>
+
+    <button class="btn-calculate" id="btn-calc">开始计算</button>
+  </section>
+
+  <!-- ══ 结果面板 ══ -->
+  <section id="results-panel" hidden>
+    <div class="results-grid">
+      <div class="agent-card card-ag00">
+        <div class="card-header">
+          <span>AG0-0</span><span class="agent-label">用户对话 · 参数验证</span>
+        </div>
+        <div class="card-body" id="card-ag00"></div>
+      </div>
+      <div class="agent-card card-ag11">
+        <div class="card-header">
+          <span>AG1-1</span><span class="agent-label">单泵规格计算</span>
+        </div>
+        <div class="card-body" id="card-ag11"></div>
+      </div>
+      <div class="agent-card card-ag12">
+        <div class="card-header">
+          <span>AG1-2</span><span class="agent-label">水泵维护间尺寸计算</span>
+        </div>
+        <div class="card-body" id="card-ag12"></div>
+      </div>
+      <div class="agent-card card-ag21">
+        <div class="card-header">
+          <span>AG2-1</span><span class="agent-label">水池体积深度计算</span>
+        </div>
+        <div class="card-body" id="card-ag21"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ══════════════════════════════════════════════
+//  工具函数
+// ══════════════════════════════════════════════
+
+const DN_SERIES = [100, 125, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800];
+
+function selectDN(d_mm) {
+  for (const dn of DN_SERIES) {
+    if (dn >= d_mm) return dn;
+  }
+  return DN_SERIES[DN_SERIES.length - 1];
+}
+
+function ceilTo01(v) {
+  return Math.ceil(v * 10) / 10;
+}
+
+function fmt(v, decimals = 2) {
+  return v.toFixed(decimals);
+}
+
+function stepRow(label, formula, value, unit) {
+  return `<tr>
+    <td>${label}</td>
+    <td class="formula">${formula}</td>
+    <td class="value">${value}&nbsp;<small>${unit}</small></td>
+  </tr>`;
+}
+
+function stepsTable(rows) {
+  return `<table class="steps-table">
+    <thead><tr><th>参数</th><th>计算式</th><th style="text-align:right">结果</th></tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table>`;
+}
+
+function kvRow(label, val) {
+  return `<div class="key-value"><span class="kv-label">${label}</span><span class="kv-val">${val}</span></div>`;
+}
+
+// ══════════════════════════════════════════════
+//  AG0-0：参数验证
+// ══════════════════════════════════════════════
+
+function runAG00(Q, N, S) {
+  const errors = [];
+  const warnings = [];
+
+  if (isNaN(Q) || Q <= 0)
+    errors.push('总设计流量 Q 必须为正数（m³/h）');
+
+  if (isNaN(N) || !Number.isInteger(N) || N < 1)
+    errors.push('工作泵台数 N 必须为正整数');
+  else if (N > 6)
+    warnings.push(`工作泵台数 N = ${N} 超过 6 台，超出规则 R-OP-02 推荐上限，效率可能下降`);
+  else if (N === 1)
+    warnings.push('单泵运行可靠性低，建议至少 2 台（R-OP-03）');
+
+  if (isNaN(S) || S <= 0)
+    errors.push('集水池占地面积 S 必须为正数（m²）');
+
+  if (errors.length === 0 && !isNaN(Q) && !isNaN(N) && N >= 1) {
+    const Qs = Q / N;
+    if (Qs > 1000)
+      warnings.push(`单泵流量 Q_single = ${fmt(Qs)} m³/h 偏大，请确认总流量单位是否正确`);
+  }
+
+  return { valid: errors.length === 0, errors, warnings, Q, N, S };
+}
+
+// ══════════════════════════════════════════════
+//  AG1-1：单泵规格计算
+// ══════════════════════════════════════════════
+
+function runAG11(Q, N) {
+  const Q_single = Q / N;
+  const q = Q_single / 3600;
+  const v = 1.0;
+  const D_inner = Math.sqrt(4 * q / (Math.PI * v));
+  const D_inner_mm = D_inner * 1000;
+  const D_nominal = selectDN(D_inner_mm);
+  const dnOverflow = D_inner_mm > 800;
+
+  const rows = [
+    stepRow('单泵设计流量 Q_single', `Q / N = ${fmt(Q)} / ${N} =`, fmt(Q_single), 'm³/h'),
+    stepRow('单泵流量（m³/s）q', `Q_single / 3600 = ${fmt(Q_single)} / 3600 =`, fmt(q, 5), 'm³/s'),
+    stepRow('设计管道流速 v', '取推荐值', fmt(v, 1), 'm/s'),
+    stepRow('排水管计算内径 D', `√(4q / πv) = √(4×${fmt(q,5)} / π×${v}) =`, fmt(D_inner * 1000, 1), 'mm'),
+    stepRow('排水管公称内径 DN', '向上取标准管径系列', `DN${D_nominal}`, 'mm'),
+  ];
+
+  return { Q_single, q, v, D_inner_mm, D_nominal, dnOverflow, rows };
+}
+
+// ══════════════════════════════════════════════
+//  AG1-2：水泵维护间尺寸计算
+// ══════════════════════════════════════════════
+
+function runAG12(N, motorPower) {
+  const w_pump    = 0.6;
+  const d_pump    = 0.8;
+  const d_spacing = motorPower > 55 ? 1.2 : 1.0;
+  const e_wall    = motorPower > 55 ? 1.0 : 0.8;
+  const L_raw     = N * w_pump + (N - 1) * d_spacing + 2 * e_wall;
+  const L         = ceilTo01(L_raw);
+  const W_equip   = d_pump + 0.5;
+  const W_raw     = Math.max(1.2, W_equip) + 0.3;
+  const W         = Math.max(2.5, ceilTo01(W_raw));
+
+  const rows = [
+    stepRow('单泵外形宽度 w_pump', '中小型离心泵典型值', fmt(w_pump, 1), 'm'),
+    stepRow('单泵外形深度 d_pump', '含电机联轴器典型值', fmt(d_pump, 1), 'm'),
+    stepRow('泵间净距 d_spacing', motorPower > 55 ? 'R-LA-01/03（大型泵）' : 'R-LA-01（一般水泵）', fmt(d_spacing, 1), 'm'),
+    stepRow('端部距墙净距 e_wall', motorPower > 55 ? 'R-LA-02/03（大型泵）' : 'R-LA-02（一般水泵）', fmt(e_wall, 1), 'm'),
+    stepRow('维护间净长 L', `N×w + (N-1)×d + 2×e = ${N}×${w_pump}+(${N-1})×${d_spacing}+2×${e_wall} =`, `${fmt(L_raw,2)} → ${fmt(L,1)}`, 'm'),
+    stepRow('通道净宽 W_equip', `d_pump + 0.5 = ${d_pump} + 0.5 =`, fmt(W_equip, 1), 'm'),
+    stepRow('维护间净宽 W', `max(1.2, ${fmt(W_equip,1)})+0.3，取≥2.5m =`, fmt(W, 1), 'm'),
+  ];
+
+  return { w_pump, d_pump, d_spacing, e_wall, L, W, rows };
+}
+
+// ══════════════════════════════════════════════
+//  AG2-1：水池体积深度计算
+// ══════════════════════════════════════════════
+
+function runAG21(Q_single, N, S, h_outlet, pipe_length) {
+  const Z           = 6;
+  const V_min       = Q_single / (4 * Z);
+  const h_active    = V_min / S;
+  const h_sub       = 0.5;
+  const h_reserve   = 0.3;
+  const h_freeboard = 0.3;
+  const h_pool_raw  = h_sub + h_active + h_reserve + h_freeboard;
+  const h_pool      = ceilTo01(h_pool_raw);
+
+  const stopLevel   = h_sub;
+  const startLevel  = stopLevel + h_active;
+  const alarmLevel  = startLevel + h_freeboard;
+
+  const startLevels = [];
+  for (let i = 0; i < N; i++) startLevels.push(+(startLevel + i * 0.2).toFixed(2));
+
+  const H_static   = h_pool + h_outlet;
+  const H_friction = pipe_length * 0.003;
+  const H_local    = H_friction * 0.4;
+  const H_raw      = H_static + H_friction + H_local;
+  const H          = H_raw * 1.08;
+
+  const rows = [
+    stepRow('每小时最大启动次数 Z', '取保守值（R-CM-02，Motor.maxStartsPerHour）', Z, '次/h'),
+    stepRow('最小有效容积 V_min', `Q_single/(4×Z) = ${fmt(Q_single)}/(4×${Z}) =`, fmt(V_min, 2), 'm³'),
+    stepRow('有效调节水深 h_active', `V_min / S = ${fmt(V_min,2)} / ${fmt(S,1)} =`, fmt(h_active, 2), 'm'),
+    stepRow('淹没保护深度 h_sub', '停泵防吸气（R-CM-03）', fmt(h_sub, 1), 'm'),
+    stepRow('底部沉淀区 h_reserve', '池底坡度 ≥ 1:10（R-CM-05）', fmt(h_reserve, 1), 'm'),
+    stepRow('超高 h_freeboard', '报警水位余量', fmt(h_freeboard, 1), 'm'),
+    stepRow('集水池有效深度 h_pool', `${fmt(h_sub,1)}+${fmt(h_active,2)}+${fmt(h_reserve,1)}+${fmt(h_freeboard,1)} = ${fmt(h_pool_raw,2)} → 取整`, fmt(h_pool, 1), 'm'),
+    stepRow('停泵水位 stopLevel', '距池底', fmt(stopLevel, 2), 'm'),
+    stepRow('首泵启泵水位 startLevel', `stopLevel + h_active = ${fmt(stopLevel,2)}+${fmt(h_active,2)} =`, fmt(startLevel, 2), 'm'),
+    stepRow('报警水位 alarmLevel', `startLevel + h_freeboard = ${fmt(startLevel,2)}+${fmt(h_freeboard,1)} =`, fmt(alarmLevel, 2), 'm'),
+    stepRow('静扬程 H_static', `h_pool + h_outlet = ${fmt(h_pool,1)}+${fmt(h_outlet,1)} =`, fmt(H_static, 2), 'm'),
+    stepRow('沿程摩擦损失 H_friction', `L×0.003 = ${pipe_length}×0.003 =`, fmt(H_friction, 3), 'm'),
+    stepRow('局部阻力损失 H_local', `H_friction×0.4 = ${fmt(H_friction,3)}×0.4 =`, fmt(H_local, 3), 'm'),
+    stepRow('水泵设计扬程 H', `(${fmt(H_static,2)}+${fmt(H_friction,3)}+${fmt(H_local,3)})×1.08（R-HY-02）=`, fmt(H, 2), 'm'),
+  ];
+
+  return {
+    Z, V_min, h_active, h_sub, h_reserve, h_freeboard,
+    h_pool, stopLevel, startLevel, alarmLevel, startLevels,
+    H_static, H_friction, H_local, H, rows
+  };
+}
+
+// ══════════════════════════════════════════════
+//  渲染函数
+// ══════════════════════════════════════════════
+
+function renderAG00(r) {
+  const status = r.valid ? (r.warnings.length > 0 ? 'warn' : 'pass') : 'error';
+  const icon   = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘';
+  const label  = status === 'pass' ? '验证通过' : status === 'warn' ? '通过（有警告）' : '验证失败';
+
+  let msgs = '';
+  r.errors.forEach(e   => { msgs += `<li><span class="icon err">✘</span> <span class="err">${e}</span></li>`; });
+  r.warnings.forEach(w => { msgs += `<li><span class="icon wrn">⚠</span> <span class="wrn">${w}</span></li>`; });
+  if (r.errors.length === 0 && r.warnings.length === 0)
+    msgs = '<li><span class="icon ok">✔</span> <span class="ok">所有参数合法，可继续计算</span></li>';
+
+  let summary = '';
+  if (r.valid) {
+    summary = `
+      ${kvRow('总设计流量 Q', fmt(r.Q, 2) + ' m³/h')}
+      ${kvRow('工作水泵台数 N', r.N + ' 台')}
+      ${kvRow('集水池面积 S', fmt(r.S, 2) + ' m²')}
+    `;
+  }
+
+  return `
+    <div style="margin-bottom:12px">
+      <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
+    </div>
+    <ul class="msg-list">${msgs}</ul>
+    ${r.valid ? `<div class="result-summary ${status}" style="margin-top:12px">${summary}</div>` : ''}
+  `;
+}
+
+function renderAG11(r) {
+  let warn = r.dnOverflow
+    ? `<p style="color:var(--color-warn);font-size:12px;margin-top:8px">⚠ 计算管径超出标准系列上限 DN800，建议与厂家确认定制管径。</p>`
+    : '';
+  return `
+    ${stepsTable(r.rows)}
+    <div class="result-summary pass">
+      ${kvRow('单泵设计流量', fmt(r.Q_single, 2) + ' m³/h')}
+      ${kvRow('排水管计算内径', fmt(r.D_inner_mm, 1) + ' mm')}
+      ${kvRow('排水管公称内径', 'DN ' + r.D_nominal + ' mm')}
+    </div>
+    ${warn}
+  `;
+}
+
+function renderAG12(r) {
+  return `
+    ${stepsTable(r.rows)}
+    <div class="result-summary pass">
+      ${kvRow('泵间净距', fmt(r.d_spacing, 1) + ' m')}
+      ${kvRow('端部距墙净距', fmt(r.e_wall, 1) + ' m')}
+      ${kvRow('维护间净长 L', fmt(r.L, 1) + ' m')}
+      ${kvRow('维护间净宽 W', fmt(r.W, 1) + ' m')}
+    </div>
+  `;
+}
+
+function renderAG21(r) {
+  // 梯级启泵水位表
+  let lvlRows = r.startLevels.map((lv, i) =>
+    `<tr><td>水泵 ${i+1}</td><td>${fmt(lv, 2)} m</td></tr>`
+  ).join('');
+
+  const staggerTable = `
+    <p style="font-size:12px;font-weight:600;color:#555;margin:10px 0 4px">梯级启泵水位（R-CL-01）</p>
+    <table class="steps-table">
+      <thead><tr><th>水泵</th><th>启泵水位</th></tr></thead>
+      <tbody>
+        ${lvlRows}
+        <tr><td>统一停泵水位</td><td>${fmt(r.stopLevel,2)} m</td></tr>
+        <tr><td>报警水位</td><td>${fmt(r.alarmLevel,2)} m</td></tr>
+      </tbody>
+    </table>
+  `;
+
+  // 水位示意图
+  const diagram = `
+    <div class="wl-diagram">
+      <div>
+        <p style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px">水位示意</p>
+        <div class="wl-labels">
+          <div class="wl-tick"><div class="dot dot-pool"></div><span>池顶 h_pool = ${fmt(r.h_pool,1)} m</span></div>
+          <div class="wl-tick"><div class="dot dot-alarm"></div><span>报警 alarmLevel = ${fmt(r.alarmLevel,2)} m</span></div>
+          <div class="wl-tick"><div class="dot dot-start"></div><span>启泵 startLevel = ${fmt(r.startLevel,2)} m</span></div>
+          <div class="wl-tick"><div class="dot dot-stop"></div><span>停泵 stopLevel = ${fmt(r.stopLevel,2)} m</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return `
+    ${stepsTable(r.rows)}
+    <div class="result-summary pass">
+      ${kvRow('最小有效容积 V_min', fmt(r.V_min, 2) + ' m³')}
+      ${kvRow('有效调节水深', fmt(r.h_active, 2) + ' m')}
+      ${kvRow('集水池有效深度 h_pool', fmt(r.h_pool, 1) + ' m')}
+      ${kvRow('水泵设计扬程 H', fmt(r.H, 2) + ' m')}
+    </div>
+    ${staggerTable}
+    ${diagram}
+  `;
+}
+
+// ══════════════════════════════════════════════
+//  主控制器
+// ══════════════════════════════════════════════
+
+function runCalculation() {
+  const Q          = parseFloat(document.getElementById('inp-Q').value);
+  const N          = parseInt(document.getElementById('inp-N').value, 10);
+  const S          = parseFloat(document.getElementById('inp-S').value);
+  const motorPower = parseFloat(document.getElementById('inp-motor').value) || 30;
+  const h_outlet   = parseFloat(document.getElementById('inp-h-outlet').value);
+  const pipe_len   = parseFloat(document.getElementById('inp-pipe-len').value);
+  const hOut       = isNaN(h_outlet) ? 1.0 : h_outlet;
+  const pLen       = isNaN(pipe_len) ? 50  : pipe_len;
+
+  // AG0-0
+  const ag00 = runAG00(Q, N, S);
+  document.getElementById('card-ag00').innerHTML = renderAG00(ag00);
+
+  const panel = document.getElementById('results-panel');
+  panel.hidden = false;
+
+  if (!ag00.valid) {
+    document.getElementById('card-ag11').innerHTML = '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>';
+    document.getElementById('card-ag12').innerHTML = '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>';
+    document.getElementById('card-ag21').innerHTML = '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>';
+    panel.scrollIntoView({ behavior: 'smooth' });
+    return;
+  }
+
+  // AG1-1
+  const ag11 = runAG11(Q, N);
+  document.getElementById('card-ag11').innerHTML = renderAG11(ag11);
+
+  // AG1-2
+  const ag12 = runAG12(N, motorPower);
+  document.getElementById('card-ag12').innerHTML = renderAG12(ag12);
+
+  // AG2-1
+  const ag21 = runAG21(ag11.Q_single, N, S, hOut, pLen);
+  document.getElementById('card-ag21').innerHTML = renderAG21(ag21);
+
+  panel.scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('btn-calc').addEventListener('click', runCalculation);
+
+document.querySelectorAll('.input-panel input').forEach(el => {
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') runCalculation(); });
+});
+</script>
+</body>
+</html>
