@@ -696,50 +696,49 @@ function runAG31(N, ag12, ag21, S) {
   const ctx = canvas.getContext('2d');
 
   const { L, W, d_spacing, e_wall, w_pump, d_pump } = ag12;
-  const { h_pool, V_min, stopLevel, startLevel, alarmLevel } = ag21;
-  const D_pool = S / L;  // pool plan depth (m)
+  const { h_pool, V_min } = ag21;
+
+  // 集水池平面尺寸（与维护间宽度 L 无关，可更宽）
+  const L_pool = Math.max(L, Math.sqrt(S * 1.5));
+  const D_pool = S / L_pool;
 
   // Layout margins
   const ML = 70, MR = 60, MT = 50, MB = 55;
   const drawW = CW - ML - MR, drawH = CH - MT - MB;
-  const scale = Math.min(drawW / L, drawH / (W + D_pool));
-  const ox = ML + (drawW - L*scale) / 2;
-  const oy = MT + (drawH - (W+D_pool)*scale) / 2;
+  const scale = Math.min(drawW / L_pool, drawH / (W + D_pool));
 
-  // Key y positions (canvas px)
-  const room_y1 = oy;
-  const room_y2 = oy + W*scale;
-  const pool_y2 = oy + (W+D_pool)*scale;
-  const room_x1 = ox, room_x2 = ox + L*scale;
+  // 集水池以维护间为中心对称
+  const ox_pool = ML + (drawW - L_pool*scale) / 2;
+  const ox      = ox_pool + (L_pool - L)/2 * scale;
+  const oy      = MT + (drawH - (W+D_pool)*scale) / 2;
+
+  // Key positions (canvas px)
+  const room_y1  = oy;
+  const room_y2  = oy + W*scale;
+  const pool_y2  = oy + (W+D_pool)*scale;
+  const room_x1  = ox, room_x2 = ox + L*scale;
+  const pool_x1  = ox_pool, pool_x2 = ox_pool + L_pool*scale;
 
   // Clear
   ctx.clearRect(0, 0, CW, CH);
   ctx.fillStyle = '#f4f6f8'; ctx.fillRect(0, 0, CW, CH);
 
-  // ── 集水池 ──
+  // ── 集水池（宽度独立，以维护间为中心） ──
   ctx.fillStyle = '#d6eaf8';
-  ctx.fillRect(room_x1, room_y2, L*scale, D_pool*scale);
+  ctx.fillRect(pool_x1, room_y2, L_pool*scale, D_pool*scale);
   ctx.strokeStyle = '#2471a3'; ctx.lineWidth = 2;
-  ctx.strokeRect(room_x1, room_y2, L*scale, D_pool*scale);
-  ctx.fillStyle = '#1a5276'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText('集 水 池', (room_x1+room_x2)/2, room_y2 + D_pool*scale/2 - 8);
-  ctx.font = '11px sans-serif';
-  ctx.fillText('V_min='+fmt(V_min)+'m³   h_pool='+fmt(h_pool,1)+'m', (room_x1+room_x2)/2, room_y2+D_pool*scale/2+8);
-
-  // ── 水位线 ──
-  [
-    [stopLevel/h_pool, '#27ae60', '停泵'],
-    [startLevel/h_pool, '#e67e22', '启泵'],
-    [alarmLevel/h_pool, '#c0392b', '报警'],
-  ].forEach(([ratio, c, lbl]) => {
-    const ly = room_y2 + D_pool*scale*(1 - ratio*0.8);
-    ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.setLineDash([5,3]);
-    ctx.beginPath(); ctx.moveTo(room_x1+2, ly); ctx.lineTo(room_x2-2, ly); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = c; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText(lbl, room_x1-2, ly+3);
-  });
+  ctx.strokeRect(pool_x1, room_y2, L_pool*scale, D_pool*scale);
+  // 集水池中隔墙（与维护间共用部分）
+  ctx.strokeStyle = '#5d6d7e'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(room_x1, room_y2); ctx.lineTo(room_x2, room_y2); ctx.stroke();
   ctx.setLineDash([]);
+  ctx.fillStyle = '#1a5276'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+  const pcx = (pool_x1+pool_x2)/2, pcy = room_y2 + D_pool*scale/2;
+  ctx.fillText('集 水 池', pcx, pcy - 8);
+  ctx.font = '11px sans-serif';
+  ctx.fillText('面积 S='+fmt(S,1)+'m²   h_pool='+fmt(h_pool,1)+'m（竖向）', pcx, pcy+8);
+  ctx.fillStyle = '#555'; ctx.font = '10px sans-serif';
+  ctx.fillText('（水位信息见 AG2-1 水位示意）', pcx, pcy+22);
 
   // ── 维护间外轮廓 ──
   ctx.fillStyle = '#eaf2fb';
@@ -803,11 +802,16 @@ function runAG31(N, ag12, ag21, S) {
 
   // ── 尺寸标注 ──
   const dim_y = pool_y2 + 28;
-  drawDimLine(ctx, room_x1, dim_y, room_x2, dim_y, 'L = '+fmt(L,1)+' m', '#1a3a5c', false);
+  // 维护间净长
+  drawDimLine(ctx, room_x1, dim_y, room_x2, dim_y, 'L='+fmt(L,1)+'m', '#1a3a5c', false);
+  // 集水池平面宽（若与 L 不同，在下方另一行标注）
+  if (Math.abs(L_pool - L) > 0.05) {
+    drawDimLine(ctx, pool_x1, dim_y+22, pool_x2, dim_y+22, 'L_pool='+fmt(L_pool,1)+'m', '#2471a3', false);
+  }
 
-  const dim_x = room_x2 + 28;
-  drawDimLine(ctx, dim_x, room_y1, dim_x, room_y2, 'W = '+fmt(W,1)+' m', '#1a3a5c', true);
-  drawDimLine(ctx, dim_x, room_y2, dim_x, pool_y2, 'S/L = '+fmt(D_pool,2)+' m', '#2471a3', true);
+  const dim_x = pool_x2 + 28;
+  drawDimLine(ctx, dim_x, room_y1, dim_x, room_y2, 'W='+fmt(W,1)+'m', '#1a3a5c', true);
+  drawDimLine(ctx, dim_x, room_y2, dim_x, pool_y2, 'D='+fmt(D_pool,2)+'m', '#2471a3', true);
 
   // 泵间距标注（第1、2台泵之间）
   if (N >= 2) {
