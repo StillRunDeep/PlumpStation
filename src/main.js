@@ -1,0 +1,72 @@
+import './style.css'
+
+import { runAG00 } from './agents/ag00-validate.js'
+import { runAG11 } from './agents/ag11-pump-spec.js'
+import { runAG12 } from './agents/ag12-maintenance-room.js'
+import { runAG21 } from './agents/ag21-pool-depth.js'
+import { runAG31 } from './agents/ag31-drawing.js'
+import { runAG41 } from './agents/ag41-building-layout.js'
+
+import { renderAG00, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
+import { renderLayoutPanel } from './ui/layout-panel.js'
+
+// ── Main calculation controller ───────────────────────────────────
+
+function runCalculation() {
+  const Q        = parseFloat(document.getElementById('inp-Q').value)
+  const N        = parseInt(document.getElementById('inp-N').value, 10)
+  const S        = parseFloat(document.getElementById('inp-S').value)
+  const h_outlet = parseFloat(document.getElementById('inp-h-outlet').value)
+  const pipe_len = parseFloat(document.getElementById('inp-pipe-len').value)
+  const hOut     = isNaN(h_outlet) ? 1.0 : h_outlet
+  const pLen     = isNaN(pipe_len) ? 50  : pipe_len
+
+  // AG0-0: validate
+  const ag00 = runAG00(Q, N, S)
+  document.getElementById('card-ag00').innerHTML = renderAG00(ag00)
+
+  const panel = document.getElementById('results-panel')
+  panel.hidden = false
+
+  if (!ag00.valid) {
+    ;['card-ag11', 'card-ag12', 'card-ag21'].forEach(id => {
+      document.getElementById(id).innerHTML =
+        '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>'
+    })
+    document.getElementById('card-ag41-wrap').hidden = true
+    panel.scrollIntoView({ behavior: 'smooth' })
+    return
+  }
+
+  // AG2-1: pool depth (provides h_pool for AG1-1 head calculation)
+  const ag21 = runAG21(Q / N, N, S)
+  document.getElementById('card-ag21').innerHTML = renderAG21(ag21)
+
+  // AG1-1: single pump spec
+  const ag11 = runAG11(Q, N, ag21.h_pool, hOut, pLen)
+  document.getElementById('card-ag11').innerHTML = renderAG11(ag11)
+
+  // AG1-2: maintenance room dimensions
+  const motorOverride  = parseFloat(document.getElementById('inp-motor').value)
+  const effectiveMotor = isNaN(motorOverride) ? ag11.P_motor : motorOverride
+  const ag12 = runAG12(N, effectiveMotor)
+  ag12.DN_label = ag11.DN_outlet
+  document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
+
+  // AG3-1: pump-room SVG (plan + section)
+  runAG31(N, ag12, ag21, S)
+
+  // AG4-1: building layout generation
+  const ag41Variants = runAG41()
+  renderLayoutPanel(ag41Variants)
+
+  panel.scrollIntoView({ behavior: 'smooth' })
+}
+
+// ── Event wiring ──────────────────────────────────────────────────
+
+document.getElementById('btn-calc').addEventListener('click', runCalculation)
+
+document.querySelectorAll('.input-panel input').forEach(el => {
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') runCalculation() })
+})

@@ -1,0 +1,122 @@
+/**
+ * Attach mouse-wheel zoom + drag pan + touch pinch to an SVG element.
+ * Zoom buttons are looked up by the IDs passed in btnIds.
+ *
+ * @param {SVGElement} svg
+ * @param {number} vw   initial viewBox width
+ * @param {number} vh   initial viewBox height
+ * @param {object} [btnIds]  { zIn, zOut, zRst } — DOM element IDs for toolbar buttons
+ */
+export function initSvgZoomPan(svg, vw, vh, btnIds = {}) {
+  svg._zpclean && svg._zpclean()
+  let vb = { x: 0, y: 0, w: vw, h: vh }
+
+  function applyVB() {
+    svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`)
+  }
+
+  function onWheel(e) {
+    e.preventDefault()
+    const f = e.deltaY > 0 ? 1.12 : 0.89
+    const rect = svg.getBoundingClientRect()
+    const mx = (e.clientX - rect.left) / rect.width * vb.w + vb.x
+    const my = (e.clientY - rect.top) / rect.height * vb.h + vb.y
+    vb.w *= f; vb.h *= f
+    vb.x = mx - (e.clientX - rect.left) / rect.width * vb.w
+    vb.y = my - (e.clientY - rect.top) / rect.height * vb.h
+    applyVB()
+  }
+
+  let drag = false, last = { x: 0, y: 0 }
+  function onDown(e) { drag = true; last = { x: e.clientX, y: e.clientY }; svg.style.cursor = 'grabbing'; e.preventDefault() }
+  function onUp()    { drag = false; svg.style.cursor = 'grab' }
+  function onMove(e) {
+    if (!drag) return
+    const rect = svg.getBoundingClientRect()
+    vb.x -= (e.clientX - last.x) / rect.width * vb.w
+    vb.y -= (e.clientY - last.y) / rect.height * vb.h
+    last = { x: e.clientX, y: e.clientY }
+    applyVB()
+  }
+
+  svg.addEventListener('wheel', onWheel, { passive: false })
+  svg.addEventListener('mousedown', onDown)
+  window.addEventListener('mouseup', onUp)
+  window.addEventListener('mousemove', onMove)
+
+  // Touch: single-finger pan + two-finger pinch
+  let touch = { active: false, last: { x: 0, y: 0 }, pinchDist: 0 }
+  function pinchDist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) }
+  function touchMid(t, rect) {
+    return {
+      cx: ((t[0].clientX + t[1].clientX) / 2 - rect.left) / rect.width * vb.w + vb.x,
+      cy: ((t[0].clientY + t[1].clientY) / 2 - rect.top) / rect.height * vb.h + vb.y,
+      sx: (t[0].clientX + t[1].clientX) / 2,
+      sy: (t[0].clientY + t[1].clientY) / 2,
+    }
+  }
+  function onTouchStart(e) {
+    e.preventDefault()
+    const rect = svg.getBoundingClientRect()
+    if (e.touches.length === 1) {
+      touch.active = true
+      touch.last = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    } else if (e.touches.length === 2) {
+      touch.active = false
+      touch.pinchDist = pinchDist(e.touches)
+      const m = touchMid(e.touches, rect)
+      touch.midSvg = { x: m.cx, y: m.cy }
+      touch.midScreen = { x: m.sx, y: m.sy }
+    }
+  }
+  function onTouchMove(e) {
+    e.preventDefault()
+    const rect = svg.getBoundingClientRect()
+    if (e.touches.length === 1 && touch.active) {
+      vb.x -= (e.touches[0].clientX - touch.last.x) / rect.width * vb.w
+      vb.y -= (e.touches[0].clientY - touch.last.y) / rect.height * vb.h
+      touch.last = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      applyVB()
+    } else if (e.touches.length === 2) {
+      const d = pinchDist(e.touches)
+      if (touch.pinchDist > 0) {
+        const f = touch.pinchDist / d
+        vb.w *= f; vb.h *= f
+        vb.x = touch.midSvg.x - (touch.midScreen.x - rect.left) / rect.width * vb.w
+        vb.y = touch.midSvg.y - (touch.midScreen.y - rect.top) / rect.height * vb.h
+        touch.pinchDist = d
+        applyVB()
+      }
+    }
+  }
+  function onTouchEnd(e) { if (e.touches.length === 0) { touch.active = false; touch.pinchDist = 0 } }
+  svg.addEventListener('touchstart', onTouchStart, { passive: false })
+  svg.addEventListener('touchmove', onTouchMove, { passive: false })
+  svg.addEventListener('touchend', onTouchEnd)
+
+  // Toolbar buttons
+  function zoomBy(f) { const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2; vb.w *= f; vb.h *= f; vb.x = cx - vb.w / 2; vb.y = cy - vb.h / 2; applyVB() }
+  function doZin()  { zoomBy(0.8) }
+  function doZout() { zoomBy(1.25) }
+  function doRst()  { vb = { x: 0, y: 0, w: vw, h: vh }; applyVB() }
+
+  const zIn  = btnIds.zIn  ? document.getElementById(btnIds.zIn)  : null
+  const zOut = btnIds.zOut ? document.getElementById(btnIds.zOut) : null
+  const zRst = btnIds.zRst ? document.getElementById(btnIds.zRst) : null
+  if (zIn)  zIn.addEventListener('click', doZin)
+  if (zOut) zOut.addEventListener('click', doZout)
+  if (zRst) zRst.addEventListener('click', doRst)
+
+  svg._zpclean = () => {
+    svg.removeEventListener('wheel', onWheel)
+    svg.removeEventListener('mousedown', onDown)
+    window.removeEventListener('mouseup', onUp)
+    window.removeEventListener('mousemove', onMove)
+    svg.removeEventListener('touchstart', onTouchStart)
+    svg.removeEventListener('touchmove', onTouchMove)
+    svg.removeEventListener('touchend', onTouchEnd)
+    if (zIn)  zIn.removeEventListener('click', doZin)
+    if (zOut) zOut.removeEventListener('click', doZout)
+    if (zRst) zRst.removeEventListener('click', doRst)
+  }
+}
