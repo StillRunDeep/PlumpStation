@@ -1,4 +1,5 @@
 import { ROOM_DEFS } from './room-defs.js'
+import { checkAdjacency } from './adjacency.js'
 
 // ── Geometry helpers ──────────────────────────────────────────────
 
@@ -15,6 +16,8 @@ export function contains(outer, inner) {
 }
 
 export function adjacent(a, b, tol = 200) {
+  // Containment counts as adjacency (e.g., a floor hatch inside a room)
+  if (contains(a, b) || contains(b, a)) return true
   // Rooms share an edge within tolerance (mm)
   const xOverlap = a.x < b.x + b.w && a.x + a.w > b.x
   const yOverlap = a.y < b.y + b.d && a.y + a.d > b.y
@@ -84,12 +87,21 @@ export function evaluateTemplate(template) {
     }
   }
 
+  // Adjacency constraint check
+  const adjacency = checkAdjacency(allPlacements)
+  for (const v of adjacency.violated) {
+    if (v.type === 'must') {
+      violations.push({ room: v.pair.join('↔'), constraint: 'must_adjacent' })
+    }
+  }
+
   return {
     feasible: violations.length === 0,
     placements: allPlacements,
     groundPlacements: template.ground,
     level1Placements: template.level1,
     violations,
+    adjacency,
     template,
   }
 }

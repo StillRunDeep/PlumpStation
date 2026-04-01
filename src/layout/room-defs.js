@@ -79,6 +79,13 @@ export const ROOM_DEFS = {
     rotatable: false, constraints: ['crane5_cover'], color: '#aed6f1', strokeColor: '#2471a3',
     isOpening: true,
   },
+
+  // ── Circulation ───────────────────────────────────────
+  corridor_l1: {
+    id: 'corridor_l1', label: '一层主走廊', labelEn: 'Level 1 Main Corridor',
+    w: 1500, d: 8800, floor: 'level1',
+    rotatable: true, constraints: [], color: '#f5f0e8', strokeColor: '#aaa',
+  },
 }
 
 // Crane coverage regions (template-dependent, defined per template in templates.js)

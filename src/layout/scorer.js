@@ -49,7 +49,18 @@ export function scoreLayout(result) {
     score += Math.max(0, 30 - dist / 500)  // linear decay with distance
   }
 
-  // 6. Penalty for constraint violations
+  // 6. Adjacency satisfaction bonus
+  const adj = result.adjacency
+  if (adj) {
+    adj.satisfied.forEach(v => {
+      score += v.type === 'must' ? 40 : 15
+    })
+    // Corridor integration bonus: corridor adjacent to ≥2 target rooms
+    const corridorHits = adj.satisfied.filter(v => v.pair.includes('corridor_l1')).length
+    if (corridorHits >= 2) score += 20
+  }
+
+  // 7. Penalty for constraint violations (includes must_adjacent violations)
   score -= result.violations.length * 50
 
   return Math.round(score)
