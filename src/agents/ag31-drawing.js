@@ -3,7 +3,7 @@ import { _r, _l, _t, _poly, _dh, _dv } from '../render/svg-helpers.js'
 import { initSvgZoomPan } from '../render/zoom-pan.js'
 
 export function runAG31(N, ag12, ag21, S) {
-  const { L, W, d_spacing, e_wall, w_pump, d_pump } = ag12
+  const { L, W, d_spacing, e_wall, w_pump, d_pump, N_total } = ag12
   const { h_pool, stopLevel, startLevel, alarmLevel } = ag21
 
   const L_pool = Math.max(L, Math.sqrt(S * 1.5))
@@ -49,7 +49,8 @@ export function runAG31(N, ag12, ag21, S) {
   s += _r(cb_x, cb_y, cb_w, cb_h, '#e67e22', '#d35400')
   s += _t(cb_x + cb_w / 2, cb_y + cb_h / 2 + 4, '控制柜', 9, '#fff', 'middle', 'bold')
 
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < N_total; i++) {
+    const isSpare = i === N_total - 1
     const px = room_ox + (e_wall + i * (w_pump + d_spacing)) * ps
     const py = room_y2 - d_pump * ps
     const pw = w_pump * ps, ph = d_pump * ps
@@ -60,9 +61,11 @@ export function runAG31(N, ag12, ag21, S) {
     s += _poly(`${cx},${cv_y - vs} ${cx + vs},${cv_y} ${cx},${cv_y + vs} ${cx - vs},${cv_y}`, '#e74c3c')
     const gv_y = py - (py - hdr_y) * 0.65
     s += _r(cx - 4, gv_y - 4, 8, 8, '#e74c3c', '#c0392b')
-    s += _r(px, py, pw, ph, '#2471a3', '#1a5276', 1.5)
+    const pumpFill   = isSpare ? '#7f8c8d' : '#2471a3'
+    const pumpStroke = isSpare ? '#566573' : '#1a5276'
+    s += _r(px, py, pw, ph, pumpFill, pumpStroke, 1.5)
     const fsz = Math.max(9, Math.min(12, pw * 0.4))
-    s += _t(cx, py + ph / 2 + 4, 'P' + (i + 1), fsz, '#fff', 'middle', 'bold')
+    s += _t(cx, py + ph / 2 + 4, isSpare ? '备' : 'P' + (i + 1), fsz, '#fff', 'middle', 'bold')
   }
 
   const aa_y = room_y2 - d_pump * ps / 2
@@ -85,7 +88,7 @@ export function runAG31(N, ag12, ag21, S) {
   }
   s += _dh(room_ox, room_ox + e_wall * ps, room_oy + 18, 'e=' + fmt(e_wall, 1) + 'm', '#8e44ad')
 
-  const legItems = [['#2471a3', '水泵机组'], ['#d6eaf8', '集水池'], ['#922b21', '出水总管'], ['#2980b9', '进水管'], ['#e74c3c', '止回/闸阀'], ['#e67e22', '控制柜']]
+  const legItems = [['#2471a3', '工作水泵'], ['#7f8c8d', '备用水泵'], ['#d6eaf8', '集水池'], ['#922b21', '出水总管'], ['#2980b9', '进水管'], ['#e74c3c', '止回/闸阀'], ['#e67e22', '控制柜']]
   let lyi = room_oy
   s += _r(4, lyi - 2, 94, legItems.length * 17 + 4, '#fff', '#ccc', 0.5, 'rx="3" opacity="0.9"')
   legItems.forEach(([c, lbl]) => {
