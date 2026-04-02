@@ -131,11 +131,17 @@ export function runAG31(N, ag12, ag21, S) {
   s += _l(sec_x1, start_y, sec_x2, start_y, '#e67e22', 1.5, '5,3')
   s += _l(sec_x1, alarm_y, sec_x2, alarm_y, '#c0392b', 1.5, '5,3')
 
+  // Water level elevations relative to ground (±0.00 = pump station floor)
+  const elev_stop  = stopLevel  - h_pool
+  const elev_start = startLevel - h_pool
+  const elev_alarm = alarmLevel - h_pool
+  const elev_bot   = -h_pool
+
   const wl_lx = sec_x2 + 6
-  s += _t(wl_lx, stop_y + 4, '停泵 ' + fmt(stopLevel, 2) + 'm', 10, '#27ae60', 'start')
-  s += _t(wl_lx, start_y + 4, '启泵 ' + fmt(startLevel, 2) + 'm', 10, '#e67e22', 'start')
-  s += _t(wl_lx, alarm_y - 3, '报警 ' + fmt(alarmLevel, 2) + 'm', 10, '#c0392b', 'start')
-  s += _t(wl_lx, pool_bot_y + 4, '池底 0.00m', 10, '#555', 'start')
+  s += _t(wl_lx, stop_y + 4, '停泵 ' + fmt(elev_stop, 2) + 'm', 10, '#27ae60', 'start')
+  s += _t(wl_lx, start_y + 4, '启泵 ' + fmt(elev_start, 2) + 'm', 10, '#e67e22', 'start')
+  s += _t(wl_lx, alarm_y - 3, '报警 ' + fmt(elev_alarm, 2) + 'm', 10, '#c0392b', 'start')
+  s += _t(wl_lx, pool_bot_y + 4, '池底 ' + fmt(elev_bot, 2) + 'm', 10, '#555', 'start')
 
   const pump_w = Math.min(sec_wx * 0.35, 30), pump_h = Math.min(room_H * ss * 0.25, 28)
   const pump_x = sec_cx - pump_w / 2, pump_y = grade_y - pump_h - 4
