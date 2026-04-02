@@ -1,4 +1,4 @@
-export const DN_SERIES = [100, 125, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800]
+export const DN_SERIES = [100, 125, 150, 200, 250, 300, 350, 400, 450, 500, 600, 700, 800, 900, 1000, 1200, 1250, 1500]
 
 export function selectDN(d_mm) {
   for (const dn of DN_SERIES) {

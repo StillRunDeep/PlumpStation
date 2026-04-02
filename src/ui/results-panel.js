@@ -30,9 +30,13 @@ export function renderAG00(r) {
 }
 
 export function renderAG11(r) {
-  const warn = r.dnOverflow
-    ? `<p style="color:var(--color-warn);font-size:12px;margin-top:8px">⚠ 计算管径超出标准系列上限 DN800，建议与厂家确认定制管径。</p>`
+  const dnWarn = r.dnOverflow
+    ? `<p style="color:var(--color-warn);font-size:12px;margin-top:8px">⚠ 计算管径超出标准系列上限 DN1500，建议与厂家确认定制管径。</p>`
     : ''
+  const effClass = r.effPass ? 'pass' : 'fail'
+  const effMsg   = r.effPass
+    ? `工作点效率 η=${r.η} ≥ 0.85×η_BEP(${r.η_BEP}) = ${fmt(r.η_threshold, 2)}，满足 R-HY-03`
+    : `工作点效率 η=${r.η} < 0.85×η_BEP(${r.η_BEP}) = ${fmt(r.η_threshold, 2)}，不满足 R-HY-03，建议调整台数或更换水泵型号`
   return `
     ${stepsTable(r.rows)}
     <div class="result-summary pass">
@@ -42,7 +46,10 @@ export function renderAG11(r) {
       ${kvRow('进水管公称内径 DN_inlet', 'DN ' + r.DN_inlet + ' mm')}
       ${kvRow('出水管公称内径 DN_outlet', 'DN ' + r.DN_outlet + ' mm')}
     </div>
-    ${warn}
+    <div class="result-summary ${effClass}" style="margin-top:8px;font-size:12px">
+      <strong>工作点效率验证（R-HY-03）：</strong>${effMsg}
+    </div>
+    ${dnWarn}
   `
 }
 
