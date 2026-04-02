@@ -8,7 +8,7 @@ export function runAG31(N, ag12, ag21, S) {
 
   const L_pool = Math.max(L, Math.sqrt(S * 1.5))
   const D_pool = S / L_pool
-  const room_H = Math.max(3.0, h_pool * 1.2 + 1.0)
+  const room_H = Math.max(3.0, h_pool * 0.2 + 1.0)
 
   const VW = 1080, VH = 580
   let s = ''
