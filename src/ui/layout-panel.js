@@ -7,8 +7,71 @@ let _selectedIdx = 0
 const VW = 1080, VH = 560
 
 /**
- * Render the AG4-1 panel: thumbnail cards + detail view.
- * @param {Array} variants  Sorted result from runAG41()
+ * Build the score comparison table shown above the variant cards.
+ */
+function renderComparisonTable(variants) {
+  const bdSign = v => v >= 0 ? `+${v}` : `${v}`
+
+  const rows = variants.map((v, i) => {
+    const t   = v.template
+    const bd  = v.breakdown || {}
+    const mustSat = (v.adjacency?.satisfied  || []).filter(a => a.type === 'must').length
+    const mustTot = mustSat + (v.adjacency?.violated || []).filter(a => a.type === 'must').length
+    const violCell = v.violations.length === 0
+      ? `<span style="color:#27ae60">✓</span>`
+      : `<span style="color:#c0392b">⚠ ${v.violations.length}</span>`
+    const area = Math.round(t.buildingW * t.buildingD / 1e6)
+    const eff  = v.spaceEfficiency != null ? (v.spaceEfficiency * 100).toFixed(1) + '%' : '—'
+
+    const bdDetail = `
+      <details><summary style="cursor:pointer;font-size:11px;color:#666">明细</summary>
+      <table style="font-size:11px;margin-top:4px;border-collapse:collapse">
+        <tr><td style="padding:1px 6px">基础分</td><td style="text-align:right">${bdSign(bd.base ?? 10000)}</td></tr>
+        <tr><td style="padding:1px 6px">占地面积</td><td style="text-align:right;color:#c0392b">${bdSign(bd.footprint ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">临近关系</td><td style="text-align:right;color:#27ae60">${bdSign(bd.adjacency ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">走廊完整</td><td style="text-align:right;color:#27ae60">${bdSign(bd.corridor ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">变压器布置</td><td style="text-align:right;color:#27ae60">${bdSign(bd.trafo ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">风机房距离</td><td style="text-align:right;color:#27ae60">${bdSign(bd.fanRoom ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">空间有效率</td><td style="text-align:right;color:#27ae60">${bdSign(bd.efficiency ?? 0)}</td></tr>
+        <tr><td style="padding:1px 6px">约束违反</td><td style="text-align:right;color:#c0392b">${bdSign(bd.violations ?? 0)}</td></tr>
+      </table></details>`
+
+    return `
+      <tr style="cursor:pointer;background:${i % 2 === 0 ? '#f8fafc' : '#fff'}" onclick="window._ag41SelectVariant(${i})">
+        <td style="text-align:center;font-weight:600">${i + 1}</td>
+        <td><strong>${t.id}</strong><br><span style="font-size:11px;color:#555">${t.label}</span></td>
+        <td style="text-align:right;font-weight:700;color:#1a5276">${v.score}</td>
+        <td style="text-align:right">${area}</td>
+        <td style="text-align:right">${eff}</td>
+        <td style="text-align:center">${mustSat} / ${mustTot}</td>
+        <td style="text-align:center">${violCell}</td>
+        <td>${bdDetail}</td>
+      </tr>`
+  }).join('')
+
+  return `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">
+      <thead>
+        <tr style="background:#1a3a5c;color:#fff;font-size:12px">
+          <th style="padding:7px 8px">排名</th>
+          <th style="padding:7px 8px;text-align:left">方案</th>
+          <th style="padding:7px 8px;text-align:right">综合得分</th>
+          <th style="padding:7px 8px;text-align:right">占地 m²</th>
+          <th style="padding:7px 8px;text-align:right">空间有效率</th>
+          <th style="padding:7px 8px">必须临近</th>
+          <th style="padding:7px 8px">约束违反</th>
+          <th style="padding:7px 8px">得分明细</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>`
+}
+
+/**
+ * Render the AG4-1 panel: comparison table + thumbnail cards + detail view.
+ * @param {Array} variants  Sorted result from runAG42()
  */
 export function renderLayoutPanel(variants) {
   _variants = variants
@@ -16,6 +79,9 @@ export function renderLayoutPanel(variants) {
 
   const container = document.getElementById('layout-variants')
   if (!container) return
+
+  const cmp = document.getElementById('layout-comparison')
+  if (cmp) cmp.innerHTML = renderComparisonTable(variants)
 
   container.innerHTML = variants.map((v, i) => {
     const t = v.template
