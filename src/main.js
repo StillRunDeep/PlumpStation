@@ -6,6 +6,7 @@ import { runAG12 } from './agents/ag12-maintenance-room.js'
 import { runAG21 } from './agents/ag21-pool-depth.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
+import { runAG42 } from './agents/ag42-layout-eval.js'
 
 import { renderAG00, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
@@ -56,9 +57,10 @@ function runCalculation() {
   // AG3-1: pump-room SVG (plan + section)
   runAG31(N, ag12, ag21, S)
 
-  // AG4-1: building layout generation
+  // AG4-1: building layout generation → AG4-2: evaluation & scoring
   const ag41Variants = runAG41()
-  renderLayoutPanel(ag41Variants)
+  const ag42Variants = runAG42(ag41Variants)
+  renderLayoutPanel(ag42Variants)
 
   panel.scrollIntoView({ behavior: 'smooth' })
 }

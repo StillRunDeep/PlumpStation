@@ -32,6 +32,7 @@ export function renderLayoutPanel(variants) {
         <div class="vc-metrics">
           占地：${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m
           &nbsp;|&nbsp; 面积：${Math.round(t.buildingW * t.buildingD / 1e6)} m²
+          &nbsp;|&nbsp; 空间有效率：${v.spaceEfficiency != null ? Math.round(v.spaceEfficiency * 100) + '%' : '—'}
           ${v.violations.length > 0 ? `&nbsp;|&nbsp; <span style="color:#c0392b">⚠ ${v.violations.length} 项约束未满足</span>` : ''}
         </div>
         <button class="vc-select-btn" onclick="event.stopPropagation();window._ag41ConfirmVariant(${i})">

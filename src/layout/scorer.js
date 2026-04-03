@@ -1,67 +1,103 @@
 import { adjacent, centerX, centerY } from './placer.js'
 
+// Rooms excluded from space efficiency numerator (non-functional spaces)
+const NON_FUNCTIONAL = new Set(['corridor_l1', 'dock1', 'dock2'])
+
+function floorFunctionalArea(placements) {
+  const seen = new Set()
+  return Object.values(placements || {})
+    .filter(p => !NON_FUNCTIONAL.has(p.id))
+    .filter(p => {
+      // Skip exact duplicates (e.g. parking and repair_zone share footprint in Group-A templates)
+      const key = `${p.x},${p.y},${p.w},${p.d}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    .reduce((sum, p) => sum + p.w * p.d, 0)
+}
+
+/**
+ * Compute space efficiency: average of per-floor (functional area / floor area).
+ * Computed separately per floor to avoid double-counting across floors.
+ * @returns {number} 0~1
+ */
+export function computeSpaceEfficiency(result) {
+  const { template, groundPlacements, level1Placements } = result
+  const floorArea = template.buildingW * template.buildingD
+  const groundEff  = floorFunctionalArea(groundPlacements)  / floorArea
+  const level1Eff  = floorFunctionalArea(level1Placements)  / floorArea
+  return (groundEff + level1Eff) / 2
+}
+
 /**
  * Score a layout result (higher = better).
- * Criteria:
- *   - Compactness: penalise total footprint area
- *   - Service rooms grouped: bonus if water-meter rooms are adjacent
- *   - Trafo ventilation: bonus if trafo rooms touch two exterior walls
- *   - Fan room access: bonus if fan_room is close to dock2
+ * Returns { score, spaceEfficiency, efficiencyScore, breakdown }.
  */
 export function scoreLayout(result) {
   const { template, placements } = result
-  let score = 10000
+  const breakdown = { base: 10000, footprint: 0, adjacency: 0, corridor: 0, trafo: 0, fanRoom: 0, efficiency: 0, violations: 0 }
+  let score = breakdown.base
 
   // 1. Footprint penalty (per m²)
   const areaMm2 = template.buildingW * template.buildingD
-  score -= (areaMm2 / 1e6) * 8   // 8 pts per m²
+  breakdown.footprint = -Math.round((areaMm2 / 1e6) * 8)
+  score += breakdown.footprint
 
-  // 2. Service rooms grouped (water-meter rooms adjacent → +30)
-  if (placements.meter_main && placements.meter_sub) {
-    if (adjacent(placements.meter_main, placements.meter_sub))
-      score += 30
-  }
-
-  // 3. Trafo touching east or west exterior wall → +20 each
+  // 2. Trafo touching east or west exterior wall → +20 each
   const bW = template.buildingW
-  const trafos = ['trafo1', 'trafo2']
-  trafos.forEach(id => {
+  ;['trafo1', 'trafo2'].forEach(id => {
     const p = placements[id]
     if (!p) return
-    const onWest = p.x <= 100
-    const onEast = p.x + p.w >= bW - 100
-    if (onWest || onEast) score += 20
+    if (p.x <= 100 || p.x + p.w >= bW - 100) {
+      breakdown.trafo += 20
+      score += 20
+    }
   })
 
-  // 4. Both trafos on same side (organised) → +20
+  // 3. Both trafos on same side → +20
   if (placements.trafo1 && placements.trafo2) {
-    const t1 = placements.trafo1, t2 = placements.trafo2
-    const sameSide = Math.abs(t1.x - t2.x) < 200
-    if (sameSide) score += 20
+    if (Math.abs(placements.trafo1.x - placements.trafo2.x) < 200) {
+      breakdown.trafo += 20
+      score += 20
+    }
   }
 
-  // 5. Fan room near dock2 → bonus up to +30
+  // 4. Fan room near dock2 → up to +30
   if (placements.fan_room && placements.dock2) {
     const dist = Math.hypot(
       centerX(placements.fan_room) - centerX(placements.dock2),
       centerY(placements.fan_room) - centerY(placements.dock2)
     )
-    score += Math.max(0, 30 - dist / 500)  // linear decay with distance
+    const bonus = Math.round(Math.max(0, 30 - dist / 500))
+    breakdown.fanRoom = bonus
+    score += bonus
   }
 
-  // 6. Adjacency satisfaction bonus
+  // 5. Adjacency satisfaction bonus
   const adj = result.adjacency
   if (adj) {
     adj.satisfied.forEach(v => {
-      score += v.type === 'must' ? 40 : 15
+      const pts = v.type === 'must' ? 40 : 15
+      breakdown.adjacency += pts
+      score += pts
     })
-    // Corridor integration bonus: corridor adjacent to ≥2 target rooms
     const corridorHits = adj.satisfied.filter(v => v.pair.includes('corridor_l1')).length
-    if (corridorHits >= 2) score += 20
+    if (corridorHits >= 2) {
+      breakdown.corridor = 20
+      score += 20
+    }
   }
 
-  // 7. Penalty for constraint violations (includes must_adjacent violations)
-  score -= result.violations.length * 50
+  // 6. Space efficiency bonus (0~+50)
+  const spaceEfficiency = computeSpaceEfficiency(result)
+  const efficiencyScore = Math.round(Math.max(0, Math.min(1, (spaceEfficiency - 0.60) / 0.30)) * 50)
+  breakdown.efficiency = efficiencyScore
+  score += efficiencyScore
 
-  return Math.round(score)
+  // 7. Constraint violation penalty
+  breakdown.violations = -(result.violations.length * 50)
+  score += breakdown.violations
+
+  return { score: Math.round(score), spaceEfficiency, efficiencyScore, breakdown }
 }

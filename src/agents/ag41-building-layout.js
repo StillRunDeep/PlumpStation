@@ -1,22 +1,15 @@
 import { ALL_TEMPLATES } from '../layout/templates.js'
 import { evaluateTemplate } from '../layout/placer.js'
-import { scoreLayout } from '../layout/scorer.js'
 
 /**
  * AG4-1: Building Space Layout Generator
  *
- * Evaluates the three predefined layout templates against the building
- * constraints, scores each, and returns them ranked best-first.
+ * Evaluates all predefined layout templates against building constraints.
+ * Returns raw results (placements, violations, adjacency) without scoring.
+ * Scoring and ranking is handled by AG4-2 (ag42-layout-eval.js).
  *
- * @returns {Array} up to 3 scored layout variants, sorted by score desc
+ * @returns {Array} unsorted layout variants
  */
 export function runAG41() {
-  const variants = ALL_TEMPLATES
-    .map(template => {
-      const result = evaluateTemplate(template)
-      return { ...result, score: scoreLayout(result) }
-    })
-    .sort((a, b) => b.score - a.score)
-
-  return variants
+  return ALL_TEMPLATES.map(template => evaluateTemplate(template))
 }
