@@ -108,6 +108,10 @@ export function renderLayoutPanel(variants) {
     `
   }).join('')
 
+  // Update badge to reflect actual variant count
+  const badge = document.getElementById('ag41-badge')
+  if (badge) badge.textContent = `${variants.length} 种方案`
+
   // Show and render the first variant in detail
   selectVariant(0)
   document.getElementById('card-ag41-wrap').hidden = false
