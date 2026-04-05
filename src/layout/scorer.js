@@ -8,7 +8,7 @@ function floorFunctionalArea(placements) {
   return Object.values(placements || {})
     .filter(p => !NON_FUNCTIONAL.has(p.id))
     .filter(p => {
-      // Skip exact duplicates (e.g. parking and repair_zone share footprint in Group-A templates)
+      // Skip exact duplicates (safety guard for any rooms sharing identical footprint)
       const key = `${p.x},${p.y},${p.w},${p.d}`
       if (seen.has(key)) return false
       seen.add(key)

@@ -11,7 +11,65 @@ import { runAG42 } from './agents/ag42-layout-eval.js'
 import { renderAG00, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
 
-// ── Main calculation controller ───────────────────────────────────
+// ── AG4-1 parameter helpers ───────────────────────────────────────────
+
+/**
+ * Read optional numeric input. Returns null if empty or invalid.
+ */
+function readOptional(id) {
+  const v = parseFloat(document.getElementById(id)?.value)
+  return isNaN(v) || v <= 0 ? null : v
+}
+
+/**
+ * Collect AG4-1 user parameters from the input panel.
+ * All room areas are in m²; dimensions in mm.
+ */
+function readAG41Params(ag12) {
+  const bW = parseFloat(document.getElementById('inp-bw')?.value) || 18600
+  const bD = parseFloat(document.getElementById('inp-bd')?.value) || 24000
+
+  const roomAreas = {}
+
+  const raRepair  = readOptional('ra-repair')
+  const raParking = readOptional('ra-parking')
+  const raLv      = readOptional('ra-lv')
+  const raCp      = readOptional('ra-cp')
+  const raFan     = readOptional('ra-fan')
+  const raRw      = readOptional('ra-rw')
+
+  if (raRepair  !== null) roomAreas.repair_zone = raRepair
+  if (raParking !== null) roomAreas.parking     = raParking
+  if (raLv      !== null) roomAreas.lv_control  = raLv
+  if (raCp      !== null) roomAreas.clean_pump  = raCp
+  if (raFan     !== null) roomAreas.fan_room    = raFan
+  if (raRw      !== null) roomAreas.rainwater   = raRw
+
+  return { buildingW: Math.round(bW / 100) * 100, buildingD: Math.round(bD / 100) * 100, roomAreas }
+}
+
+/**
+ * Auto-fill the repair_zone area hint from AG1-2 output.
+ * The repair zone should be at least L × W from the maintenance-room calc.
+ */
+function updateRepairZoneHint(ag12) {
+  const noteEl = document.getElementById('ra-repair-note')
+  const inputEl = document.getElementById('ra-repair')
+  if (!noteEl || !inputEl) return
+
+  const area = Math.ceil(ag12.L * ag12.W)  // m²
+  noteEl.innerHTML =
+    `继承自 AG1-2：维护间净长 <strong>${ag12.L.toFixed(1)} m</strong> × ` +
+    `净宽 <strong>${ag12.W.toFixed(1)} m</strong> ≈ <strong>${area} m²</strong>。` +
+    `当前输入值为用户指定值；留空则使用比例算法默认值。`
+
+  // Only auto-fill if the user hasn't entered a value
+  if (!inputEl.value) {
+    inputEl.placeholder = `≈ ${area}（AG1-2）`
+  }
+}
+
+// ── Main calculation controller ───────────────────────────────────────
 
 function runCalculation() {
   const Q        = parseFloat(document.getElementById('inp-Q').value)
@@ -57,15 +115,21 @@ function runCalculation() {
   // AG3-1: pump-room SVG (plan + section)
   runAG31(N, ag12, ag21, S)
 
-  // AG4-1: building layout generation → AG4-2: evaluation & scoring
-  const ag41Variants = runAG41()
+  // Update repair_zone hint from AG1-2 before reading AG4-1 params
+  updateRepairZoneHint(ag12)
+
+  // AG4-1: building layout generation with user parameters
+  const ag41Params   = readAG41Params(ag12)
+  const ag41Variants = runAG41(ag41Params)
+
+  // AG4-2: evaluation & scoring
   const ag42Variants = runAG42(ag41Variants)
   renderLayoutPanel(ag42Variants)
 
   panel.scrollIntoView({ behavior: 'smooth' })
 }
 
-// ── Event wiring ──────────────────────────────────────────────────
+// ── Event wiring ──────────────────────────────────────────────────────
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 
