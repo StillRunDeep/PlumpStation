@@ -2,7 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [0330discussion]
+    branches:
+      - 0330discussion
+      - claude/add-user-interaction-floor-plan-91JC4
   workflow_dispatch:
 
 permissions:
