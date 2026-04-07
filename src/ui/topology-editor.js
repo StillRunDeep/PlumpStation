@@ -46,11 +46,10 @@ function nodeHalfSize(node) {
 
 // ── SVG 坐标转换 ──────────────────────────────────────────────────────
 function svgPoint(e) {
-  const rect = _svgEl.getBoundingClientRect()
-  return {
-    x: (e.clientX - rect.left) * (VW / rect.width),
-    y: (e.clientY - rect.top)  * (VH / rect.height),
-  }
+  const pt = _svgEl.createSVGPoint()
+  pt.x = e.clientX
+  pt.y = e.clientY
+  return pt.matrixTransform(_svgEl.getScreenCTM().inverse())
 }
 
 // ── 公开 API ──────────────────────────────────────────────────────────
