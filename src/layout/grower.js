@@ -8,24 +8,23 @@
  *   coordinates within its valid zone.  Room sizes emerge from the resulting
  *   spatial partition; they may differ from any user-supplied area targets.
  *
- * Random decisions (12 independent dimensions per seed):
- *   D-01  trafoEast          — trafo block on east or west
- *   D-02  svcOrder           — service room L-R order (3! = 6 permutations)
- *   D-03  craneZoneSplitEW   — crane zone: E-W partition (30 %) vs N-S (70 %)
- *   D-04  repairSeedRatio    — repair_zone seed position within crane zone
- *   D-05  parkingSeedRatio   — parking seed position within crane zone
- *                              (split at midpoint; northward / westward seed
- *                               gets the corresponding sub-zone — no swap flag)
- *   D-06  trafoSeedRatio     — Y-start of trafo block within trafo zone
- *   D-07  dock1SeedXRatio    — dock1 x position within crane zone
- *   D-08  dock1SeedYRatio    — dock1 y position within crane zone
- *   D-09  lvWRatio           — lv_control width within [lvWMin..lvWMax]
- *   D-10  fanDRatio          — fan room depth: 35 %..60 % of bD
- *   D-11  cpSeedRatio        — clean_pump seed in pump zone
- *   D-12  rwSeedRatio        — rainwater seed in pump zone
- *                              (split at midpoint; seed closer to fan room
- *                               gets the northward sub-zone)
- *   D-13  dock2XRatio        — dock2 x offset within fan room
+ * 13 independent random dimensions per seed (all positional, none area-derived):
+ *   D-01  trafoEast        — trafo block on east or west
+ *   D-02  svcOrder         — service room L-R order (3! = 6 permutations)
+ *   D-03  craneZoneSplitEW — crane zone: E-W partition (30 %) vs N-S (70 %)
+ *   D-04  repairSeedRatio  — repair_zone seed within crane zone
+ *   D-05  parkingSeedRatio — parking seed within crane zone
+ *                            (split line = midpoint of seeds; northward /
+ *                             westward seed → that room gets that sub-zone)
+ *   D-06  trafoSeedRatio   — Y-start of trafo block (random offset in zone)
+ *   D-07  dock1SeedXRatio  — dock1 x within crane zone
+ *   D-08  dock1SeedYRatio  — dock1 y within crane zone
+ *   D-09  lvWRatio         — lv_control width in [lvWMin..lvWMax]
+ *   D-10  fanDRatio        — fan room depth: 35 %..60 % of bD
+ *   D-11  cpSeedRatio      — clean_pump seed in pump zone
+ *   D-12  rwSeedRatio      — rainwater seed in pump zone
+ *                            (same midpoint-split logic as D-04/D-05)
+ *   D-13  dock2XRatio      — dock2 x offset within fan room
  *
  * Coordinates: (0,0) = NW interior corner, X→east, Y→south, units mm.
  */
@@ -122,16 +121,14 @@ function seedPartition1D(zoneLen, seedA, seedB, minLen = MIN_ROOM_D) {
 /**
  * Generate one Template A variant.
  *
- * @param {number} seed       Integer RNG seed
- * @param {number} bW         Building width (mm), east-west
- * @param {number} bD         Building depth (mm), north-south
- * @param {object} roomAreas  User target areas (m²) — accepted for reference,
- *                            not used to derive room positions.  Sizes emerge
- *                            from seed-position growth and may differ from targets.
- * @param {string} groupId    Short group label
- * @param {number} variantIdx 1-based index within the group
+ * @param {number} seed      Integer RNG seed
+ * @param {number} bW        Building width (mm), east-west
+ * @param {number} bD        Building depth (mm), north-south
+ * @param {object} roomAreas User target areas (m²) — accepted for reference only;
+ *                           not used to derive room positions.  Sizes emerge from
+ *                           seed-position growth and may differ from targets.
  */
-export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', variantIdx = 1) {
+export function generateTemplateA(seed, bW, bD, roomAreas = {}) {
   const rng = makeRng(seed)
 
   // ── Structural zone dimensions (from building proportions) ───────
@@ -305,20 +302,17 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
   const rwAreaM2  = Math.round(rwW * rwD_actual / 1e6)
 
   return {
-    id:          `A-${groupId}-${variantIdx}`,
-    label:       `维修区居中·${sideLabel}`,
-    desc:        `建筑 ${(bW / 1000).toFixed(1)}m×${(bD / 1000).toFixed(1)}m（长宽比 ${arRatio}）` +
-                 `·${sideLabel}·${splitLabel}·${cpNS}·服务用房 ${svcDesc}` +
-                 `·维修区 ${repairAreaM2} m²·停车区 ${parkingAreaM2} m²` +
-                 `·清洁泵 ${cpAreaM2} m²·雨水房 ${rwAreaM2} m²`,
+    id:       `A-${seed.toString(16).slice(-6).toUpperCase()}`,
+    label:    `维修区居中·${sideLabel}`,
+    desc:     `建筑 ${(bW / 1000).toFixed(1)}m×${(bD / 1000).toFixed(1)}m（长宽比 ${arRatio}）` +
+              `·${sideLabel}·${splitLabel}·${cpNS}·服务用房 ${svcDesc}` +
+              `·维修区 ${repairAreaM2} m²·停车区 ${parkingAreaM2} m²` +
+              `·清洁泵 ${cpAreaM2} m²·雨水房 ${rwAreaM2} m²`,
     ground,
     level1,
-    buildingW:   bW,
-    buildingD:   bD,
-    groupId,
-    variantIdx,
-    aspectRatio: parseFloat(arRatio),
-    crane15:     { x: craneX, y: SERVICE_BELT, w: CRANE_ZONE_W, d: craneZoneD },
-    crane5:      { x: fanX,   y: 0,            w: FAN_ROOM_W,   d: FAN_ROOM_D },
+    buildingW: bW,
+    buildingD: bD,
+    crane15:   { x: craneX, y: SERVICE_BELT, w: CRANE_ZONE_W, d: craneZoneD },
+    crane5:    { x: fanX,   y: 0,            w: FAN_ROOM_W,   d: FAN_ROOM_D },
   }
 }
