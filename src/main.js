@@ -87,6 +87,14 @@ initTopologyEditor('topology-editor-wrap', () => {})
 setTopologyFromN(_initN)
 _lastTopoN = _initN
 
+document.getElementById('inp-N').addEventListener('input', () => {
+  const N = parseInt(document.getElementById('inp-N').value, 10)
+  if (N >= 1 && N <= 10 && N !== _lastTopoN) {
+    setTopologyFromN(N)
+    _lastTopoN = N
+  }
+})
+
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 
 document.querySelectorAll('.input-panel input').forEach(el => {

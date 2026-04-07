@@ -33,13 +33,37 @@ export function generateDefaultTopology(N) {
   const edges   = []
   const total   = N + 1  // +1 备用
 
-  // 纵向布局：泵在集水坑纵向排列，止回阀+电动闸阀在泵房维护间横向成对
-  const pumpX   = 130                                         // 泵在集水坑的 X
-  const cvX     = 300                                         // 止回阀在泵房的 X
-  const gvX     = 390                                         // 电动闸阀在泵房的 X
-  const rowY0   = 100                                         // 第一行 Y
-  const rowDY   = Math.min(90, (CANVAS_H - 80) / total)      // 行间距
+  const pumpX      = 130
+  const cvX        = 290
+  const gvX        = 375
+  const junctionX  = 460
+  const mainGvX    = 545
+  const flowmeterX = 630
+  const rowY0      = 80
+  const rowDY      = Math.min(90, (CANVAS_H - 100) / total)
+  const centerY    = rowY0 + (total - 1) * rowDY / 2
 
+  // 汇流节点
+  const junctionId = uid('junc')
+  devices.push({ id: junctionId, type: 'junction', label: '汇',
+    roomId: 'pump_room', editorX: junctionX, editorY: centerY })
+
+  // 总线闸阀
+  const mainGvId = uid('gv')
+  devices.push({ id: mainGvId, type: 'gate_valve', label: '总闸',
+    roomId: 'pump_room', editorX: mainGvX, editorY: centerY })
+
+  // 电磁流量计
+  const fmId = uid('fm')
+  devices.push({ id: fmId, type: 'flowmeter', label: '流量计',
+    roomId: 'pump_room', editorX: flowmeterX, editorY: centerY })
+
+  // junction → 总闸 → 流量计 → 出水
+  edges.push({ id: uid('e'), fromId: junctionId, toId: mainGvId })
+  edges.push({ id: uid('e'), fromId: mainGvId,   toId: fmId })
+  edges.push({ id: uid('e'), fromId: fmId,        toId: 'discharge' })
+
+  // 各支路
   for (let i = 0; i < total; i++) {
     const isSpare = i === total - 1
     const by = rowY0 + i * rowDY
@@ -48,43 +72,35 @@ export function generateDefaultTopology(N) {
     const cvId   = uid('cv')
     const gvId   = uid('gv')
 
-    devices.push({
-      id:      pumpId,
-      type:    'pump',
-      label:   isSpare ? '备' : `P${i + 1}`,
-      roomId:  'wet_well',
-      editorX: pumpX,
-      editorY: by,
-      isSpare,
-    })
-    devices.push({
-      id:      cvId,
-      type:    'check_valve',
-      label:   isSpare ? '止备' : `止${i + 1}`,
-      roomId:  'pump_room',
-      editorX: cvX,
-      editorY: by,
-      isSpare,
-    })
-    devices.push({
-      id:      gvId,
-      type:    'gate_valve',
-      label:   isSpare ? '闸备' : `闸${i + 1}`,
-      roomId:  'pump_room',
-      editorX: gvX,
-      editorY: by,
-      isSpare,
-    })
+    devices.push({ id: pumpId, type: 'pump',
+      label: isSpare ? '备' : `P${i + 1}`,
+      roomId: 'wet_well', editorX: pumpX, editorY: by, isSpare })
+    devices.push({ id: cvId, type: 'check_valve',
+      label: isSpare ? '止备' : `止${i + 1}`,
+      roomId: 'pump_room', editorX: cvX, editorY: by, isSpare })
+    devices.push({ id: gvId, type: 'gate_valve',
+      label: isSpare ? '闸备' : `闸${i + 1}`,
+      roomId: 'pump_room', editorX: gvX, editorY: by, isSpare })
 
-    // source → pump → check_valve → gate_valve → discharge
-    edges.push({ id: uid('e'), fromId: 'source', toId: pumpId })
-    edges.push({ id: uid('e'), fromId: pumpId,   toId: cvId })
-    edges.push({ id: uid('e'), fromId: cvId,     toId: gvId })
-    edges.push({ id: uid('e'), fromId: gvId,     toId: 'discharge' })
+    // 进水 → 泵 → 止回阀 → 闸阀 → 汇流节点
+    edges.push({ id: uid('e'), fromId: 'source',  toId: pumpId })
+    edges.push({ id: uid('e'), fromId: pumpId,    toId: cvId })
+    edges.push({ id: uid('e'), fromId: cvId,      toId: gvId })
+    edges.push({ id: uid('e'), fromId: gvId,      toId: junctionId })
   }
 
-  // 旁通回水路径：出水 → 进水
-  edges.push({ id: uid('e'), fromId: 'discharge', toId: 'source' })
+  // 旁通回水：出水 → 旁通止回阀 → 旁通闸阀 → 进水
+  const bypassY    = Math.min(rowY0 + total * rowDY + 30, CANVAS_H - 30)
+  const bypassCvId = uid('cv')
+  const bypassGvId = uid('gv')
+  devices.push({ id: bypassCvId, type: 'check_valve', label: '旁止',
+    roomId: 'pump_room', editorX: 560, editorY: bypassY })
+  devices.push({ id: bypassGvId, type: 'gate_valve', label: '旁闸',
+    roomId: 'pump_room', editorX: 380, editorY: bypassY })
+
+  edges.push({ id: uid('e'), fromId: 'discharge', toId: bypassCvId })
+  edges.push({ id: uid('e'), fromId: bypassCvId,  toId: bypassGvId })
+  edges.push({ id: uid('e'), fromId: bypassGvId,  toId: 'source' })
 
   return {
     rooms:   ROOMS.map(r => ({ ...r })),

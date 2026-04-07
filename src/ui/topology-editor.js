@@ -30,6 +30,8 @@ const NODE_SHAPES = {
   gate_valve: { s: 13 },        // 正方形边长
   source:     { r: 14 },        // 圆
   discharge:  { r: 14 },
+  junction:   { r: 6  },        // 汇流点小圆
+  flowmeter:  { r: 14 },        // 电磁流量计圆
 }
 
 function nodeCenter(node) {
@@ -453,6 +455,25 @@ function _makeNode(node) {
       'stroke-width': isSel ? 2.5 : 1,
     }))
     g.appendChild(_makeLabel(node.editorX, node.editorY + s / 2 + 11, node.label, '#555', 9))
+  }
+
+  else if (node.type === 'junction') {
+    const r = NODE_SHAPES.junction.r
+    g.appendChild(_makeSvgEl('circle', {
+      cx: node.editorX, cy: node.editorY, r,
+      fill: isSel ? '#2980b9' : '#2c3e50', stroke: '#1a252f', 'stroke-width': 1.5,
+    }))
+  }
+
+  else if (node.type === 'flowmeter') {
+    const r = NODE_SHAPES.flowmeter.r
+    g.appendChild(_makeSvgEl('circle', {
+      cx: node.editorX, cy: node.editorY, r,
+      fill: '#8e44ad', stroke: '#6c3483',
+      'stroke-width': isSel ? 2.5 : 1.5,
+    }))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + 4, 'FM', '#fff', 9))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + r + 11, node.label, '#555', 9))
   }
 
   else if (node.type === 'source' || node.type === 'discharge') {
