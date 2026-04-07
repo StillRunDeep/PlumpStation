@@ -1,6 +1,7 @@
 import './style.css'
 
 import { runAG00 } from './agents/ag00-validate.js'
+import { runAG01 } from './agents/ag01-topology.js'
 import { runAG11 } from './agents/ag11-pump-spec.js'
 import { runAG12 } from './agents/ag12-maintenance-room.js'
 import { runAG21 } from './agents/ag21-pool-depth.js'
@@ -8,8 +9,11 @@ import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
+import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
+
+let _lastTopoN = null
 
 // ── Main calculation controller ───────────────────────────────────
 
@@ -28,6 +32,16 @@ function runCalculation() {
 
   const panel = document.getElementById('results-panel')
   panel.hidden = false
+
+  // AG0-1: 若 N 变化则重置默认拓扑（不覆盖用户已编辑的拓扑）
+  if (N !== _lastTopoN) {
+    setTopologyFromN(N)
+    _lastTopoN = N
+  }
+
+  // AG0-1: 拓扑解析
+  const ag01 = runAG01(getCurrentTopology())
+  document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
     ;['card-ag11', 'card-ag12', 'card-ag21'].forEach(id => {
@@ -54,8 +68,8 @@ function runCalculation() {
   ag12.DN_label = ag11.DN_outlet
   document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
 
-  // AG3-1: pump-room SVG (plan + section)
-  runAG31(N, ag12, ag21, S)
+  // AG3-1: pump-room SVG (plan + section)，从 ag01 取拓扑（单向数据流）
+  runAG31(N, ag12, ag21, S, ag01.topology)
 
   // AG4-1: building layout generation → AG4-2: evaluation & scoring
   const ag41Variants = runAG41()
@@ -66,6 +80,12 @@ function runCalculation() {
 }
 
 // ── Event wiring ──────────────────────────────────────────────────
+
+// ── 初始化 AG0-1 拓扑编辑器 ──────────────────────────────────────────
+const _initN = parseInt(document.getElementById('inp-N').value, 10) || 3
+initTopologyEditor('topology-editor-wrap', () => {})
+setTopologyFromN(_initN)
+_lastTopoN = _initN
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 

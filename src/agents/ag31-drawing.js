@@ -1,10 +1,19 @@
 import { fmt } from '../utils.js'
 import { _r, _l, _t, _poly, _dh, _dv } from '../render/svg-helpers.js'
 import { initSvgZoomPan } from '../render/zoom-pan.js'
+import { topologyToAG31Params } from './ag01-topology.js'
 
-export function runAG31(N, ag12, ag21, S) {
+export function runAG31(N, ag12, ag21, S, topology = null) {
   const { L, W, d_spacing, e_wall, w_pump, d_pump, N_total } = ag12
   const { h_pool, stopLevel, startLevel, alarmLevel } = ag21
+
+  // 从拓扑推导各泵的房间归属（如无拓扑则全部在泵房）
+  const topoParams = topology ? topologyToAG31Params(topology) : null
+  // 建立 index → roomId 映射（按泵在拓扑中的排列顺序）
+  const pumpRoomMap = {}
+  if (topoParams) {
+    topoParams.pumpsInOrder.forEach((p, idx) => { pumpRoomMap[idx] = p.roomId })
+  }
 
   const L_pool = Math.max(L, Math.sqrt(S * 1.5))
   const D_pool = S / L_pool
@@ -49,23 +58,41 @@ export function runAG31(N, ag12, ag21, S) {
   s += _r(cb_x, cb_y, cb_w, cb_h, '#e67e22', '#d35400')
   s += _t(cb_x + cb_w / 2, cb_y + cb_h / 2 + 4, '控制柜', 9, '#fff', 'middle', 'bold')
 
+  // 泵房中的泵计数（决定布局间距）
+  let pumpRoomIdx = 0
   for (let i = 0; i < N_total; i++) {
-    const isSpare = i === N_total - 1
-    const px = room_ox + (e_wall + i * (w_pump + d_spacing)) * ps
-    const py = room_y2 - d_pump * ps
+    const isSpare   = i === N_total - 1
+    const inWetWell = pumpRoomMap[i] === 'wet_well'
+
     const pw = w_pump * ps, ph = d_pump * ps
-    const cx = px + pw / 2
-    s += _l(cx, room_y2, cx, pool_y2 - 6, '#2980b9', 1.5, '4,3')
-    s += _l(cx, py, cx, hdr_y, '#c0392b', 1.5)
-    const cv_y = py - (py - hdr_y) * 0.35, vs = 5
-    s += _poly(`${cx},${cv_y - vs} ${cx + vs},${cv_y} ${cx},${cv_y + vs} ${cx - vs},${cv_y}`, '#e74c3c')
-    const gv_y = py - (py - hdr_y) * 0.65
-    s += _r(cx - 4, gv_y - 4, 8, 8, '#e74c3c', '#c0392b')
     const pumpFill   = isSpare ? '#7f8c8d' : '#2471a3'
     const pumpStroke = isSpare ? '#566573' : '#1a5276'
-    s += _r(px, py, pw, ph, pumpFill, pumpStroke, 1.5)
-    const fsz = Math.max(9, Math.min(12, pw * 0.4))
-    s += _t(cx, py + ph / 2 + 4, isSpare ? '备' : 'P' + (i + 1), fsz, '#fff', 'middle', 'bold')
+    const label      = isSpare ? '备' : 'P' + (i + 1)
+
+    if (inWetWell) {
+      // 泵在集水坑区域：画在集水池矩形内
+      const wx = pool_ox + (i + 1) * (L_pool * ps / (N_total + 1))
+      const wy = room_y2 + D_pool * ps * 0.35
+      s += _r(wx - pw / 2, wy - ph / 2, pw, ph, pumpFill, pumpStroke, 1.5)
+      const fsz = Math.max(9, Math.min(12, pw * 0.4))
+      s += _t(wx, wy + 4, label, fsz, '#fff', 'middle', 'bold')
+      s += _t(wx, wy + ph / 2 + 12, '（集水坑内）', 8, '#2471a3', 'middle')
+    } else {
+      // 泵在泵房：原有位置逻辑
+      const px = room_ox + (e_wall + pumpRoomIdx * (w_pump + d_spacing)) * ps
+      const py = room_y2 - d_pump * ps
+      const cx = px + pw / 2
+      s += _l(cx, room_y2, cx, pool_y2 - 6, '#2980b9', 1.5, '4,3')
+      s += _l(cx, py, cx, hdr_y, '#c0392b', 1.5)
+      const cv_y = py - (py - hdr_y) * 0.35, vs = 5
+      s += _poly(`${cx},${cv_y - vs} ${cx + vs},${cv_y} ${cx},${cv_y + vs} ${cx - vs},${cv_y}`, '#e74c3c')
+      const gv_y = py - (py - hdr_y) * 0.65
+      s += _r(cx - 4, gv_y - 4, 8, 8, '#e74c3c', '#c0392b')
+      s += _r(px, py, pw, ph, pumpFill, pumpStroke, 1.5)
+      const fsz = Math.max(9, Math.min(12, pw * 0.4))
+      s += _t(cx, py + ph / 2 + 4, label, fsz, '#fff', 'middle', 'bold')
+      pumpRoomIdx++
+    }
   }
 
   const aa_y = room_y2 - d_pump * ps / 2
