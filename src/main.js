@@ -13,13 +13,15 @@ import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21 } from './ui
 import { renderLayoutPanel } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
-let _lastTopoN = null
+let _lastTopoN     = null
+let _lastTopoSpare = 0
 
 // ── Main calculation controller ───────────────────────────────────
 
 function runCalculation() {
   const Q        = parseFloat(document.getElementById('inp-Q').value)
   const N        = parseInt(document.getElementById('inp-N').value, 10)
+  const N_spare  = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
   const S        = parseFloat(document.getElementById('inp-S').value)
   const h_outlet = parseFloat(document.getElementById('inp-h-outlet').value)
   const pipe_len = parseFloat(document.getElementById('inp-pipe-len').value)
@@ -33,10 +35,11 @@ function runCalculation() {
   const panel = document.getElementById('results-panel')
   panel.hidden = false
 
-  // AG0-1: 若 N 变化则重置默认拓扑（不覆盖用户已编辑的拓扑）
-  if (N !== _lastTopoN) {
-    setTopologyFromN(N)
-    _lastTopoN = N
+  // AG0-1: 若 N 或 N_spare 变化则重置默认拓扑
+  if (N !== _lastTopoN || N_spare !== _lastTopoSpare) {
+    setTopologyFromN(N, N_spare)
+    _lastTopoN     = N
+    _lastTopoSpare = N_spare
   }
 
   // AG0-1: 拓扑解析
@@ -64,7 +67,7 @@ function runCalculation() {
   // AG1-2: maintenance room dimensions
   const motorOverride  = parseFloat(document.getElementById('inp-motor').value)
   const effectiveMotor = isNaN(motorOverride) ? ag11.P_motor : motorOverride
-  const ag12 = runAG12(N, effectiveMotor)
+  const ag12 = runAG12(N, effectiveMotor, N_spare)
   ag12.DN_label = ag11.DN_outlet
   document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
 
@@ -87,13 +90,18 @@ initTopologyEditor('topology-editor-wrap', () => {})
 setTopologyFromN(_initN)
 _lastTopoN = _initN
 
-document.getElementById('inp-N').addEventListener('input', () => {
-  const N = parseInt(document.getElementById('inp-N').value, 10)
-  if (N >= 1 && N <= 10 && N !== _lastTopoN) {
-    setTopologyFromN(N)
-    _lastTopoN = N
+function _updateTopo() {
+  const N       = parseInt(document.getElementById('inp-N').value, 10)
+  const N_spare = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
+  if (N >= 1 && N <= 10 && (N !== _lastTopoN || N_spare !== _lastTopoSpare)) {
+    setTopologyFromN(N, N_spare)
+    _lastTopoN     = N
+    _lastTopoSpare = N_spare
   }
-})
+}
+
+document.getElementById('inp-N').addEventListener('input', _updateTopo)
+document.getElementById('inp-N-spare').addEventListener('input', _updateTopo)
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 

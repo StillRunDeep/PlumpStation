@@ -23,15 +23,16 @@ let _idCounter = 1
 function uid(prefix) { return `${prefix}_${_idCounter++}` }
 
 /**
- * 生成默认拓扑（N 台工作泵 + 1 台备用泵）
- * @param {number} N 工作泵数量
+ * 生成默认拓扑
+ * @param {number} N       工作泵数量
+ * @param {number} N_spare 备用泵数量（默认 0）
  * @returns {Topology}
  */
-export function generateDefaultTopology(N) {
+export function generateDefaultTopology(N, N_spare = 0) {
   _idCounter = 1
   const devices = []
   const edges   = []
-  const total   = N  // 默认无备用泵
+  const total   = N + N_spare
 
   const pumpX      = 130
   const cvX        = 290
@@ -66,21 +67,23 @@ export function generateDefaultTopology(N) {
 
   // 各支路
   for (let i = 0; i < total; i++) {
-    const isSpare = false   // 默认无备用泵
+    const isSpare = i >= N   // 前 N 台为工作泵，之后为备用泵
     const by = rowY0 + i * rowDY
 
     const pumpId = uid('pump')
     const cvId   = uid('cv')
     const gvId   = uid('gv')
 
+    const spareIdx = i - N + 1
     devices.push({ id: pumpId, type: 'pump',
-      label: `P${i + 1}`,
+      label: isSpare ? (N_spare > 1 ? `备${spareIdx}` : '备') : `P${i + 1}`,
       roomId: 'wet_well', editorX: pumpX, editorY: by, isSpare })
+    const spareLabel = N_spare > 1 ? `${i - N + 1}` : ''
     devices.push({ id: cvId, type: 'check_valve',
-      label: isSpare ? '止备' : `止${i + 1}`,
+      label: isSpare ? `止备${spareLabel}` : `止${i + 1}`,
       roomId: 'pump_room', editorX: cvX, editorY: by, isSpare })
     devices.push({ id: gvId, type: 'gate_valve',
-      label: isSpare ? '闸备' : `闸${i + 1}`,
+      label: isSpare ? `闸备${spareLabel}` : `闸${i + 1}`,
       roomId: 'pump_room', editorX: gvX, editorY: by, isSpare })
 
     // 进水 → 泵 → 止回阀 → 闸阀 → 汇流节点

@@ -98,8 +98,8 @@ export function initTopologyEditor(containerId, onConfirmCallback) {
   _render()
 }
 
-export function setTopologyFromN(N) {
-  _topology  = generateDefaultTopology(N)
+export function setTopologyFromN(N, N_spare = 0) {
+  _topology  = generateDefaultTopology(N, N_spare)
   _selected  = null
   _connectMode = false
   _connectFrom = null
