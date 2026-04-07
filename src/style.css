@@ -173,7 +173,7 @@ details .adv-grid { margin-top: 12px; }
 .topo-btn.danger { border-color: #c0392b; color: #c0392b; }
 .topo-btn.danger:hover { background: #fdedec; }
 #svg-ag01 {
-  display: block; width: 100%; height: 360px;
+  display: block; width: 100%; height: 420px;
   background: #f9fafb; border: 1.5px solid #d5d8dc;
   border-radius: 6px; cursor: default;
 }
