@@ -39,8 +39,8 @@ export function generateDefaultTopology(N) {
   const junctionX  = 460
   const mainGvX    = 545
   const flowmeterX = 630
-  const rowY0      = 80
-  const rowDY      = Math.min(90, (CANVAS_H - 100) / total)
+  const rowDY      = Math.min(90, (CANVAS_H - 100) / Math.max(total, 1))
+  const rowY0      = (CANVAS_H - (total - 1) * rowDY) / 2   // 垂直居中
   const centerY    = rowY0 + (total - 1) * rowDY / 2
 
   // 汇流节点
@@ -65,7 +65,7 @@ export function generateDefaultTopology(N) {
 
   // 各支路
   for (let i = 0; i < total; i++) {
-    const isSpare = i === total - 1
+    const isSpare = false   // 默认无备用泵
     const by = rowY0 + i * rowDY
 
     const pumpId = uid('pump')
@@ -73,7 +73,7 @@ export function generateDefaultTopology(N) {
     const gvId   = uid('gv')
 
     devices.push({ id: pumpId, type: 'pump',
-      label: isSpare ? '备' : `P${i + 1}`,
+      label: `P${i + 1}`,
       roomId: 'wet_well', editorX: pumpX, editorY: by, isSpare })
     devices.push({ id: cvId, type: 'check_valve',
       label: isSpare ? '止备' : `止${i + 1}`,
@@ -89,18 +89,18 @@ export function generateDefaultTopology(N) {
     edges.push({ id: uid('e'), fromId: gvId,      toId: junctionId })
   }
 
-  // 旁通回水：汇流节点 → 旁通止回阀 → 旁通闸阀 → 进水
-  const bypassY    = Math.min(rowY0 + total * rowDY + 30, CANVAS_H - 30)
-  const bypassCvId = uid('cv')
+  // 旁通回水：汇流节点 → 旁通闸阀（同闸阀列） → 旁通止回阀（同止回阀列） → 进水
+  const bypassY    = Math.min(rowY0 + (total - 1) * rowDY + rowDY * 0.8, CANVAS_H - 30)
   const bypassGvId = uid('gv')
-  devices.push({ id: bypassCvId, type: 'check_valve', label: '旁止',
-    roomId: 'pump_room', editorX: 460, editorY: bypassY })
+  const bypassCvId = uid('cv')
   devices.push({ id: bypassGvId, type: 'gate_valve', label: '旁闸',
-    roomId: 'pump_room', editorX: 340, editorY: bypassY })
+    roomId: 'pump_room', editorX: gvX, editorY: bypassY })
+  devices.push({ id: bypassCvId, type: 'check_valve', label: '旁止',
+    roomId: 'pump_room', editorX: cvX, editorY: bypassY })
 
-  edges.push({ id: uid('e'), fromId: junctionId,  toId: bypassCvId })
-  edges.push({ id: uid('e'), fromId: bypassCvId,  toId: bypassGvId })
-  edges.push({ id: uid('e'), fromId: bypassGvId,  toId: 'source' })
+  edges.push({ id: uid('e'), fromId: junctionId,  toId: bypassGvId })
+  edges.push({ id: uid('e'), fromId: bypassGvId,  toId: bypassCvId })
+  edges.push({ id: uid('e'), fromId: bypassCvId,  toId: 'source' })
 
   return {
     rooms:   ROOMS.map(r => ({ ...r })),
