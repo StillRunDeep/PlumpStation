@@ -3,8 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - 0330discussion
-      - claude/add-user-interaction-floor-plan-91JC4
+      - main_0407_AutoLayout
   workflow_dispatch:
 
 permissions:
