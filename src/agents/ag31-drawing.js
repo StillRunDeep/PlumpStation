@@ -59,15 +59,17 @@ export function runAG31(N, ag12, ag21, S, topology = null) {
   s += _t(cb_x + cb_w / 2, cb_y + cb_h / 2 + 4, '控制柜', 9, '#fff', 'middle', 'bold')
 
   // 泵房中的泵计数（决定布局间距）
+  const pumpsInOrder = topoParams ? topoParams.pumpsInOrder : null
   let pumpRoomIdx = 0
   for (let i = 0; i < N_total; i++) {
-    const isSpare   = i === N_total - 1
+    const topoP     = pumpsInOrder ? pumpsInOrder[i] : null
+    const isSpare   = topoP ? !!topoP.isSpare : (i === N_total - 1)
     const inWetWell = pumpRoomMap[i] === 'wet_well'
 
     const pw = w_pump * ps, ph = d_pump * ps
     const pumpFill   = isSpare ? '#7f8c8d' : '#2471a3'
     const pumpStroke = isSpare ? '#566573' : '#1a5276'
-    const label      = isSpare ? '备' : 'P' + (i + 1)
+    const label      = topoP ? topoP.label : (isSpare ? '备' : 'P' + (i + 1))
 
     if (inWetWell) {
       // 泵在集水坑区域：画在集水池矩形内
