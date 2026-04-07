@@ -59,7 +59,6 @@ const SVC_PROPS = [
 ]
 
 // Standard aspect ratios for the 18 alternative-dimension variants (BD/BW)
-const ASPECT_RATIOS = [1, 1.2, 1.5, 1.8, 2, 2.4]
 
 // ── Seeded RNG (xorshift32) ───────────────────────────────────────────
 function makeRng(seed) {
@@ -255,84 +254,3 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
 }
 
 // ── Constraint evaluator ──────────────────────────────────────────────
-
-function evaluateGrownTemplate(template) {
-  const allPlacements = { ...template.ground, ...template.level1 }
-  const violations = []
-
-  for (const [id, placement] of Object.entries(allPlacements)) {
-    const def = ROOM_DEFS[id]
-    if (!def) continue
-    for (const key of def.constraints) {
-      const checkFn = CONSTRAINT_CHECKS[key]
-      if (!checkFn) continue
-      if (!checkFn(id, allPlacements, template)) {
-        violations.push({ room: id, constraint: key })
-      }
-    }
-  }
-
-  const adjacency = checkAdjacency(allPlacements)
-  for (const v of adjacency.violated) {
-    if (v.type === 'must') {
-      violations.push({ room: v.pair.join('↔'), constraint: 'must_adjacent' })
-    }
-  }
-
-  return {
-    feasible:         violations.length === 0,
-    placements:       allPlacements,
-    groundPlacements: template.ground,
-    level1Placements: template.level1,
-    violations,
-    adjacency,
-    template,
-  }
-}
-
-// ── Public API ────────────────────────────────────────────────────────
-
-/**
- * Generate and evaluate 5 + 6×3 = 23 Template A variants.
- *
- * Group S  (5 variants): user-specified building dimensions, seeds 0–4
- * Groups R1.0 … R2.4  (3 variants each, seeds 0–2):
- *   same floor area as the user building, reshaped to standard aspect ratios.
- *
- * @param {object} userParams
- * @param {number} [userParams.buildingW=18600]  Building width (mm)
- * @param {number} [userParams.buildingD=24000]  Building depth (mm)
- * @param {object} [userParams.roomAreas={}]     Target areas per room (m²)
- * @returns {Array} 23 evaluated variants
- */
-export function generateTemplateAVariants(userParams = {}) {
-  const bW        = snap(userParams.buildingW || BASE_BW)
-  const bD        = snap(userParams.buildingD || BASE_BD)
-  const roomAreas = userParams.roomAreas || {}
-
-  const variants = []
-
-  // ── Group S: 5 variants at user dimensions ────────────────────
-  for (let i = 0; i < 5; i++) {
-    const t = generateTemplateA(i, bW, bD, roomAreas, 'S', i + 1)
-    variants.push(evaluateGrownTemplate(t))
-  }
-
-  // ── Groups R*: 3 variants per standard aspect ratio ───────────
-  // Each group uses seeds 0–2 (same random patterns at a different shape)
-  // so you can compare how aspect ratio changes the layout quality.
-  const baseArea = bW * bD
-  for (const ratio of ASPECT_RATIOS) {
-    // BD / BW = ratio  →  BW = sqrt(A/r), BD = sqrt(A·r)
-    const newBW = snap(Math.sqrt(baseArea / ratio))
-    const newBD = snap(Math.sqrt(baseArea * ratio))
-    const ratioLabel = `R${ratio.toFixed(1)}`
-
-    for (let i = 0; i < 3; i++) {
-      const t = generateTemplateA(i, newBW, newBD, roomAreas, ratioLabel, i + 1)
-      variants.push(evaluateGrownTemplate(t))
-    }
-  }
-
-  return variants  // 5 + 18 = 23 variants
-}
