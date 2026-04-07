@@ -33,16 +33,16 @@ export function generateDefaultTopology(N) {
   const edges   = []
   const total   = N + 1  // +1 备用
 
-  // 每条分支的水平间距
-  const branchX0  = 240   // 第一台泵的 X 起点
-  const branchDX  = Math.min(90, (CANVAS_W - 100 - branchX0) / total)
-  const pumpY     = 200   // 泵的 Y 坐标（居中）
-  const cvOffset  = -60   // 止回阀相对于泵的 Y 偏移（往上）
-  const gvOffset  = -110  // 电动闸阀相对于泵的 Y 偏移
+  // 纵向布局：泵在集水坑纵向排列，止回阀+电动闸阀在泵房维护间横向成对
+  const pumpX   = 130                                         // 泵在集水坑的 X
+  const cvX     = 300                                         // 止回阀在泵房的 X
+  const gvX     = 390                                         // 电动闸阀在泵房的 X
+  const rowY0   = 100                                         // 第一行 Y
+  const rowDY   = Math.min(90, (CANVAS_H - 80) / total)      // 行间距
 
   for (let i = 0; i < total; i++) {
     const isSpare = i === total - 1
-    const bx = branchX0 + i * branchDX
+    const by = rowY0 + i * rowDY
 
     const pumpId = uid('pump')
     const cvId   = uid('cv')
@@ -52,9 +52,9 @@ export function generateDefaultTopology(N) {
       id:      pumpId,
       type:    'pump',
       label:   isSpare ? '备' : `P${i + 1}`,
-      roomId:  'pump_room',
-      editorX: bx,
-      editorY: pumpY,
+      roomId:  'wet_well',
+      editorX: pumpX,
+      editorY: by,
       isSpare,
     })
     devices.push({
@@ -62,8 +62,8 @@ export function generateDefaultTopology(N) {
       type:    'check_valve',
       label:   isSpare ? '止备' : `止${i + 1}`,
       roomId:  'pump_room',
-      editorX: bx,
-      editorY: pumpY + cvOffset,
+      editorX: cvX,
+      editorY: by,
       isSpare,
     })
     devices.push({
@@ -71,8 +71,8 @@ export function generateDefaultTopology(N) {
       type:    'gate_valve',
       label:   isSpare ? '闸备' : `闸${i + 1}`,
       roomId:  'pump_room',
-      editorX: bx,
-      editorY: pumpY + gvOffset,
+      editorX: gvX,
+      editorY: by,
       isSpare,
     })
 
@@ -82,6 +82,9 @@ export function generateDefaultTopology(N) {
     edges.push({ id: uid('e'), fromId: cvId,     toId: gvId })
     edges.push({ id: uid('e'), fromId: gvId,     toId: 'discharge' })
   }
+
+  // 旁通回水路径：出水 → 进水
+  edges.push({ id: uid('e'), fromId: 'discharge', toId: 'source' })
 
   return {
     rooms:   ROOMS.map(r => ({ ...r })),
