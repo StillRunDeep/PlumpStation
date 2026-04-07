@@ -195,5 +195,77 @@ export function topologyToAG31Params(topology) {
   return { pumpsInOrder, checkValves, gateValves, devicesByRoom, allNodes, edges: topology.edges }
 }
 
+/**
+ * AG0-1 解析代理：对拓扑做连通性检查和设备统计
+ * @param {Topology} topology
+ */
+export function runAG01(topology) {
+  if (!topology) {
+    return { valid: false, errors: ['未找到拓扑数据'], warnings: [], stats: {}, byRoom: {}, isolated: [], dischargeReachable: false, topology: null }
+  }
+
+  const devices = topology.devices
+  const edges   = topology.edges
+
+  // ── 统计 ──────────────────────────────────────────────────────────
+  const workingPumps = devices.filter(d => d.type === 'pump' && !d.isSpare)
+  const sparePumps   = devices.filter(d => d.type === 'pump' && d.isSpare)
+  const checkValves  = devices.filter(d => d.type === 'check_valve')
+  const gateValves   = devices.filter(d => d.type === 'gate_valve')
+
+  const byRoom = {}
+  for (const room of topology.rooms) {
+    byRoom[room.id] = { label: room.label, devices: devices.filter(d => d.roomId === room.id) }
+  }
+
+  // ── BFS 连通性检查（从 source 出发）────────────────────────────────
+  const allNodeIds = new Set(['source', 'discharge', ...devices.map(d => d.id)])
+  const adj = {}
+  for (const id of allNodeIds) adj[id] = []
+  for (const e of edges) {
+    if (adj[e.fromId]) adj[e.fromId].push(e.toId)
+  }
+
+  const reachable = new Set()
+  const queue = ['source']
+  while (queue.length) {
+    const cur = queue.shift()
+    if (reachable.has(cur)) continue
+    reachable.add(cur)
+    for (const next of (adj[cur] || [])) queue.push(next)
+  }
+
+  const isolated = devices.filter(d => !reachable.has(d.id))
+  const dischargeReachable = reachable.has('discharge')
+
+  // ── 错误 / 警告 ────────────────────────────────────────────────────
+  const errors   = []
+  const warnings = []
+
+  if (!dischargeReachable) errors.push('出水口不可达：存在断路，请检查连线')
+  if (workingPumps.length === 0) errors.push('没有工作泵，请至少添加一台水泵')
+
+  for (const d of isolated) {
+    warnings.push(`设备「${d.label}」未连入拓扑（孤立节点）`)
+  }
+  if (sparePumps.length === 0) warnings.push('未配置备用泵（建议至少 1 台）')
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    stats: {
+      N_working:   workingPumps.length,
+      N_spare:     sparePumps.length,
+      N_checkValve: checkValves.length,
+      N_gateValve:  gateValves.length,
+    },
+    byRoom,
+    isolated,
+    dischargeReachable,
+    topology,
+  }
+}
+
 /** 导出固定节点供 editor 使用 */
 export { FIXED_NODES, ROOMS }

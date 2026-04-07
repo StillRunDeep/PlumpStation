@@ -55,18 +55,12 @@
       </div>
     </details>
 
-    <button class="btn-calculate" id="btn-calc">开始计算</button>
-  </section>
-
-  <!-- ══ AG0-1 拓扑编辑器 ══ -->
-  <section class="agent-card card-ag01" style="margin:0 0 24px">
-    <div class="card-header">
-      <span>AG0-1</span>
-      <span class="agent-label">拓扑编辑器 · 设备连接关系定义</span>
-    </div>
-    <div class="card-body" style="padding:14px">
+    <details id="topology-details" open>
+      <summary>设备拓扑配置</summary>
       <div id="topology-editor-wrap"></div>
-    </div>
+    </details>
+
+    <button class="btn-calculate" id="btn-calc">开始计算</button>
   </section>
 
   <!-- ══ 结果面板 ══ -->
@@ -79,6 +73,14 @@
           <span>AG0-0</span><span class="agent-label">用户对话 · 参数验证</span>
         </div>
         <div class="card-body" id="card-ag00"></div>
+      </div>
+
+      <!-- AG0-1 -->
+      <div class="agent-card card-ag01">
+        <div class="card-header">
+          <span>AG0-1</span><span class="agent-label">拓扑解析 · 连接关系验证</span>
+        </div>
+        <div class="card-body" id="card-ag01"></div>
       </div>
 
       <!-- AG1-1 -->

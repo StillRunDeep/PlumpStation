@@ -1,5 +1,48 @@
 import { fmt, stepsTable, kvRow } from '../utils.js'
 
+export function renderAG01(r) {
+  if (!r) return '<p style="color:#999;padding:8px">未找到拓扑数据。</p>'
+
+  const status = r.valid ? (r.warnings.length > 0 ? 'warn' : 'pass') : 'error'
+  const icon   = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘'
+  const label  = status === 'pass' ? '拓扑有效' : status === 'warn' ? '有效（有警告）' : '拓扑有误'
+
+  let msgs = ''
+  r.errors.forEach(e   => { msgs += `<li><span class="icon err">✘</span> <span class="err">${e}</span></li>` })
+  r.warnings.forEach(w => { msgs += `<li><span class="icon wrn">⚠</span> <span class="wrn">${w}</span></li>` })
+  if (r.errors.length === 0 && r.warnings.length === 0)
+    msgs = '<li><span class="icon ok">✔</span> <span class="ok">拓扑连通，所有设备已接入</span></li>'
+
+  // 设备统计
+  const { N_working, N_spare, N_checkValve, N_gateValve } = r.stats || {}
+  const statsRows = `
+    ${kvRow('工作泵', N_working + ' 台')}
+    ${kvRow('备用泵', N_spare + ' 台')}
+    ${kvRow('止回阀', N_checkValve + ' 个')}
+    ${kvRow('电动闸阀', N_gateValve + ' 个')}
+  `
+
+  // 房间归属
+  let roomRows = ''
+  for (const [roomId, info] of Object.entries(r.byRoom || {})) {
+    const count = info.devices.length
+    roomRows += kvRow(info.label, count + ' 台设备')
+  }
+
+  return `
+    <div style="margin-bottom:12px">
+      <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
+    </div>
+    <ul class="msg-list">${msgs}</ul>
+    <div class="result-summary ${status}" style="margin-top:12px">
+      <div style="font-weight:600;margin-bottom:6px;font-size:12px;color:#666">设备统计</div>
+      ${statsRows}
+      <div style="font-weight:600;margin:10px 0 6px;font-size:12px;color:#666">房间归属</div>
+      ${roomRows}
+    </div>
+  `
+}
+
 export function renderAG00(r) {
   const status = r.valid ? (r.warnings.length > 0 ? 'warn' : 'pass') : 'error'
   const icon   = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘'

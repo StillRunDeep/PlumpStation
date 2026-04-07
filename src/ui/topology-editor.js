@@ -19,7 +19,6 @@ let _connectFrom  = null
 let _dragging     = null    // { deviceId, offsetX, offsetY }
 let _ghostLine    = null    // SVG line element for connect preview
 let _onConfirm    = () => {}
-let _confirmed    = false   // 用于显示"已确认"状态
 
 // 画布 viewBox 尺寸
 const VW = 800, VH = 400
@@ -71,10 +70,7 @@ export function initTopologyEditor(containerId, onConfirmCallback) {
       <button class="topo-btn" data-action="reset">↺ 重置</button>
     </div>
     <svg id="svg-ag01" viewBox="0 0 ${VW} ${VH}" xmlns="http://www.w3.org/2000/svg"></svg>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:10px">
-      <button id="btn-topo-confirm">✓ 确定拓扑</button>
-      <span id="topo-status" style="font-size:12px;color:#888"></span>
-    </div>
+    <p style="font-size:11px;color:#999;margin-top:6px">点击「开始计算」即可应用当前拓扑</p>
   `
 
   _svgEl = document.getElementById('svg-ag01')
@@ -96,15 +92,12 @@ export function initTopologyEditor(containerId, onConfirmCallback) {
 
   _bindToolbar()
   _bindSvgEvents()
-  document.getElementById('btn-topo-confirm').addEventListener('click', _handleConfirm)
-
   _render()
 }
 
 export function setTopologyFromN(N) {
   _topology  = generateDefaultTopology(N)
   _selected  = null
-  _confirmed = false
   _connectMode = false
   _connectFrom = null
   if (_svgEl) _render()
@@ -155,13 +148,6 @@ function _toggleConnectMode() {
   }
   _svgEl.style.cursor = _connectMode ? 'crosshair' : 'default'
   _render()
-}
-
-function _handleConfirm() {
-  _confirmed = true
-  const status = document.getElementById('topo-status')
-  if (status) { status.textContent = '✔ 拓扑已确认'; status.style.color = '#117a65' }
-  _onConfirm(cloneTopology(_topology))
 }
 
 // ── SVG 事件 ──────────────────────────────────────────────────────────
