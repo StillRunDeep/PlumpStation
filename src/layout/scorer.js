@@ -5,16 +5,18 @@ const NON_FUNCTIONAL = new Set(['corridor_l1', 'dock1', 'dock2'])
 
 function floorFunctionalArea(placements) {
   const seen = new Set()
-  return Object.values(placements || {})
-    .filter(p => !NON_FUNCTIONAL.has(p.id))
-    .filter(p => {
+  // Iterate via entries so the room id (object key) is used for the NON_FUNCTIONAL
+  // check rather than the absent p.id field on each placement object.
+  return Object.entries(placements || {})
+    .filter(([id]) => !NON_FUNCTIONAL.has(id))
+    .filter(([, p]) => {
       // Skip exact duplicates (safety guard for any rooms sharing identical footprint)
       const key = `${p.x},${p.y},${p.w},${p.d}`
       if (seen.has(key)) return false
       seen.add(key)
       return true
     })
-    .reduce((sum, p) => sum + p.w * p.d, 0)
+    .reduce((sum, [, p]) => sum + p.w * p.d, 0)
 }
 
 /**

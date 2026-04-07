@@ -1,5 +1,6 @@
 import { ROOM_DEFS } from './room-defs.js'
 import { checkAdjacency } from './adjacency.js'
+import { placeDoors } from './door-placer.js'
 
 // ── Geometry helpers ──────────────────────────────────────────────
 
@@ -72,7 +73,9 @@ export const CONSTRAINT_CHECKS = {
  * Returns { feasible, placements, violations }.
  */
 export function evaluateTemplate(template) {
+  console.log('evaluateTemplate called with template:', template);
   const allPlacements = { ...template.ground, ...template.level1 }
+  console.log('allPlacements before placeDoors:', allPlacements);
   const violations = []
 
   for (const [id, placement] of Object.entries(allPlacements)) {
@@ -95,6 +98,9 @@ export function evaluateTemplate(template) {
     }
   }
 
+  // Place doors
+  const doors = placeDoors(allPlacements, template);
+
   return {
     feasible: violations.length === 0,
     placements: allPlacements,
@@ -102,6 +108,7 @@ export function evaluateTemplate(template) {
     level1Placements: template.level1,
     violations,
     adjacency,
+    doors, // Add doors to the returned object
     template,
   }
 }
