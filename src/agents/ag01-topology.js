@@ -31,7 +31,7 @@ export function generateDefaultTopology(N) {
   _idCounter = 1
   const devices = []
   const edges   = []
-  const total   = N + 1  // +1 备用
+  const total   = N  // 默认无备用泵
 
   const pumpX      = 130
   const cvX        = 290
@@ -89,16 +89,16 @@ export function generateDefaultTopology(N) {
     edges.push({ id: uid('e'), fromId: gvId,      toId: junctionId })
   }
 
-  // 旁通回水：出水 → 旁通止回阀 → 旁通闸阀 → 进水
+  // 旁通回水：汇流节点 → 旁通止回阀 → 旁通闸阀 → 进水
   const bypassY    = Math.min(rowY0 + total * rowDY + 30, CANVAS_H - 30)
   const bypassCvId = uid('cv')
   const bypassGvId = uid('gv')
   devices.push({ id: bypassCvId, type: 'check_valve', label: '旁止',
-    roomId: 'pump_room', editorX: 560, editorY: bypassY })
+    roomId: 'pump_room', editorX: 460, editorY: bypassY })
   devices.push({ id: bypassGvId, type: 'gate_valve', label: '旁闸',
-    roomId: 'pump_room', editorX: 380, editorY: bypassY })
+    roomId: 'pump_room', editorX: 340, editorY: bypassY })
 
-  edges.push({ id: uid('e'), fromId: 'discharge', toId: bypassCvId })
+  edges.push({ id: uid('e'), fromId: junctionId,  toId: bypassCvId })
   edges.push({ id: uid('e'), fromId: bypassCvId,  toId: bypassGvId })
   edges.push({ id: uid('e'), fromId: bypassGvId,  toId: 'source' })
 
@@ -126,7 +126,7 @@ export function addDevice(topology, type, roomId) {
   const offsetX = (existingInRoom.length % 5) * 50
   const offsetY = Math.floor(existingInRoom.length / 5) * 60
 
-  const labels = { pump: 'P', check_valve: '止', gate_valve: '闸' }
+  const labels = { pump: 'P', check_valve: '止', gate_valve: '闸', flowmeter: 'FM', junction: '汇' }
   const newId = uid(type)
   const newDevice = {
     id:      newId,
