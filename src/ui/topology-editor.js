@@ -66,6 +66,8 @@ export function initTopologyEditor(containerId, onConfirmCallback) {
       <button class="topo-btn" data-action="add-pump">＋ 水泵</button>
       <button class="topo-btn" data-action="add-cv">＋ 止回阀</button>
       <button class="topo-btn" data-action="add-gv">＋ 电动闸阀</button>
+      <button class="topo-btn" data-action="add-fm">＋ 电磁流量计</button>
+      <button class="topo-btn" data-action="add-junc">＋ 汇流节点</button>
       <button class="topo-btn danger" data-action="delete-selected">删除选中</button>
       <button class="topo-btn" id="btn-connect-mode" data-action="toggle-connect">连线模式</button>
       <button class="topo-btn" data-action="reset">↺ 重置</button>
@@ -114,9 +116,11 @@ function _bindToolbar() {
     const btn = e.target.closest('[data-action]')
     if (!btn) return
     const action = btn.dataset.action
-    if (action === 'add-pump')     { _topology = addDevice(_topology, 'pump', 'pump_room'); _render() }
+    if (action === 'add-pump')     { _topology = addDevice(_topology, 'pump', 'wet_well'); _render() }
     if (action === 'add-cv')       { _topology = addDevice(_topology, 'check_valve', 'pump_room'); _render() }
     if (action === 'add-gv')       { _topology = addDevice(_topology, 'gate_valve', 'pump_room'); _render() }
+    if (action === 'add-fm')       { _topology = addDevice(_topology, 'flowmeter', 'pump_room'); _render() }
+    if (action === 'add-junc')     { _topology = addDevice(_topology, 'junction', 'pump_room'); _render() }
     if (action === 'delete-selected') _deleteSelected()
     if (action === 'toggle-connect')  _toggleConnectMode()
     if (action === 'reset') {
