@@ -39,9 +39,10 @@ export function generateDefaultTopology(N) {
   const junctionX  = 460
   const mainGvX    = 545
   const flowmeterX = 630
-  const rowDY      = Math.min(90, (CANVAS_H - 100) / Math.max(total, 1))
-  const rowY0      = (CANVAS_H - (total - 1) * rowDY) / 2   // 垂直居中
-  const centerY    = rowY0 + (total - 1) * rowDY / 2
+  const totalRows  = total + 1  // N 条水泵支路 + 1 条旁通
+  const rowDY      = Math.min(80, (CANVAS_H - 60) / Math.max(totalRows, 1))
+  const rowY0      = (CANVAS_H - (totalRows - 1) * rowDY) / 2  // 全部行垂直居中
+  const centerY    = rowY0 + (total - 1) * rowDY / 2           // 汇流点在水泵行中间
 
   // 汇流节点
   const junctionId = uid('junc')
@@ -90,7 +91,7 @@ export function generateDefaultTopology(N) {
   }
 
   // 旁通回水：汇流节点 → 旁通闸阀（同闸阀列） → 旁通止回阀（同止回阀列） → 进水
-  const bypassY    = Math.min(rowY0 + (total - 1) * rowDY + rowDY * 0.8, CANVAS_H - 30)
+  const bypassY    = rowY0 + total * rowDY  // 旁通行 = 第 total+1 行
   const bypassGvId = uid('gv')
   const bypassCvId = uid('cv')
   devices.push({ id: bypassGvId, type: 'gate_valve', label: '旁闸',
