@@ -25,12 +25,13 @@ export async function runAG41() {
   const userParams = await getUserConfirmedParams(defaultUserParams);
 
   const variants = [];
-  // 生成 9 个方案
+  // Generate 9 variants using well-spaced seeds (golden-ratio hashing ensures
+  // neighbouring indices produce uncorrelated RNG states)
+  const baseSeed = Date.now()
   for (let i = 0; i < 9; i++) {
-    // 使用当前时间戳和循环索引作为种子，确保每次生成都不同
-    const seed = Date.now() + i;
-    const t = generateTemplateA(seed, userParams.buildingW, userParams.buildingD, userParams.roomTargetAreas, 'S', i + 1);
-    variants.push(t);
+    const seed = (baseSeed ^ (i * 2654435761)) >>> 0   // Fibonacci / Knuth hashing
+    const t = generateTemplateA(seed, userParams.buildingW, userParams.buildingD, userParams.roomAreas || {}, 'S', i + 1)
+    variants.push(t)
   }
 
   // AG4-1 只需要返回原始的模板对象，评估和筛选由 AG4-2 处理

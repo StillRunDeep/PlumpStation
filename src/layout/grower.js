@@ -4,23 +4,19 @@
  * Template A: 维修区居中 (repair/parking zone in the centre)
  *
  * Building dimensions are user-parameterised. All zone geometry scales
- * proportionally from the reference building (18600 × 24000 mm).
+ * proportionally from the reference building (18600 W × 24000 D mm).
  *
  * Per-seed random decisions:
- *   1. Trafo block side: east or west
- *   2. Service room left-right order (3! permutations of meter_main/sub/fire_equip)
- *   3. lv_control width: lvWMin..lvWMax (scaled)
- *   4. clean_pump / rainwater Y-split within a valid range (scaled)
- *   5. Parking/repair crane-zone split (default or from user target area)
- *   6. dock1 x-offset within crane zone, dock2 x-offset within fan_room
- *
- * Parking is treated as an independent functional space (separate room from
- * repair_zone), positioned in the lower part of the 15t crane zone.
- *
- * Generates 5 + 6×3 = 23 Template A variants:
- *   • 5 variants at user-specified building dimensions
- *   • 3 variants each at 6 standard aspect ratios (same floor area):
- *     长宽比 1 / 1.2 / 1.5 / 1.8 / 2 / 2.4
+ *   1.  Trafo block side: east or west
+ *   2.  Service room left-right order (3! permutations of meter_main/sub/fire_equip)
+ *   3.  lv_control width: lvWMin..lvWMax (scaled); ±500 mm jitter when area override
+ *   4.  clean_pump / rainwater Y-split within a valid range; ±300 mm jitter
+ *   5.  Parking/repair crane-zone split (from user target area + ±5 % jitter)
+ *   6.  dock1 x-offset within crane zone, dock2 x-offset within fan_room
+ *   7.  parkingNorth: parking at north end of crane zone, repair at south (or vice versa)
+ *   8.  cpAbove: clean_pump above rainwater in level-1 (or below)
+ *   9.  fan_room depth variation: ±8 % of proportional value (or from user area)
+ *   10. Extra parking jitter even when user provides an area target
  *
  * Coordinates: (0,0) = NW interior corner, X→east, Y→south, units mm.
  */
@@ -45,7 +41,7 @@ const R_LV_D         = 17500 / BASE_BD   // lv_control depth ratio
 const R_CP_SPLIT_MIN = 17500 / BASE_BD   // clean_pump/rainwater split min ratio
 const R_CP_SPLIT_MAX = 18300 / BASE_BD   // clean_pump/rainwater split max ratio
 const R_CP_W         = 6500  / BASE_BW   // clean_pump width ratio
-const R_PARKING_D    = 17200 / BASE_BD   // default parking depth (from ROOM_DEFS)
+const R_PARKING_D    = 17200 / BASE_BD   // default parking depth ratio
 
 // Fixed dimensions (not scaled with building size)
 const CORRIDOR_W = 1600   // Level-1 corridor minimum clear width (mm)
@@ -57,8 +53,6 @@ const SVC_PROPS = [
   { id: 'meter_sub',  wR: 2800 / BASE_BW, dR: 3300 / BASE_BD },
   { id: 'fire_equip', wR: 2800 / BASE_BW, dR: 2500 / BASE_BD },
 ]
-
-// Standard aspect ratios for the 18 alternative-dimension variants (BD/BW)
 
 // ── Seeded RNG (xorshift32) ───────────────────────────────────────────
 function makeRng(seed) {
@@ -95,7 +89,8 @@ function snap(v, grid = 100) {
  * @param {number} bW         Building width (mm), east-west
  * @param {number} bD         Building depth (mm), north-south
  * @param {object} roomAreas  Optional target areas per room ID (m²).
- *                            Recognised keys: parking, repair_zone, lv_control, clean_pump
+ *                            Recognised keys: parking, repair_zone, lv_control,
+ *                            clean_pump, fan_room, rainwater
  * @param {string} groupId    Short group label, e.g. 'S', 'R1.0'
  * @param {number} variantIdx 1-based index within the group
  */
@@ -109,7 +104,6 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
   const TRAFO1_D     = snap(bD * R_TRAFO_D)
   const TRAFO2_D     = snap(bD * R_TRAFO_D)
   const FAN_ROOM_W   = snap(bW * R_FAN_W)
-  const FAN_ROOM_D   = snap(bD * R_FAN_D)
   const LV_D         = snap(bD * R_LV_D)
   const craneZoneD   = bD - SERVICE_BELT
 
@@ -124,66 +118,107 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
   const lvWMin = snap(bW * R_LV_W_MIN)
   const lvWMax = snap(bW * R_LV_W_MAX)
 
-  // Scaled cpSplitY range
-  const cpSplitYMin = snap(bD * R_CP_SPLIT_MIN)
-  const cpSplitYMax = snap(bD * R_CP_SPLIT_MAX)
+  // ── Random decisions (consume RNG in fixed order for reproducibility) ──
 
-  // ── Random decisions ────────────────────────────────────────────
+  // Decision 1: trafo side
   const trafoEast = rng() < 0.5
-  const svcOrder  = shuffle(SVC, rng)
 
-  // Always consume exactly 2 RNG values per continuous parameter so that
-  // downstream random decisions are identical regardless of overrides.
-  const rv_lv1 = rng(), rv_lv2 = rng()
-  const rv_cp1 = rng(), rv_cp2 = rng()
-  const rv_pk1 = rng()   // parking jitter
+  // Decision 2: service room order (consumes 2 RNG values for 3-element shuffle)
+  const svcOrder = shuffle(SVC, rng)
 
-  // lv_control width — user override takes precedence, then random
+  // Decisions 3-4: continuous parameters — always consume 2 values each so that
+  // downstream decisions are identical regardless of which branch is taken.
+  const rv_lv1 = rng(), rv_lv2 = rng()   // lv_control width
+  const rv_cp1 = rng(), rv_cp2 = rng()   // cpSplitY
+
+  // Decision 5: parking/repair split base jitter
+  const rv_pk1 = rng()
+
+  // Decisions 6a-b: dock offsets
+  const dock1XOff = snap(rng() * Math.max(0, CRANE_ZONE_W - DOCK_W - 200))
+  const dock2XMax = Math.max(0, FAN_ROOM_W - DOCK_W - 4000)
+  const dock2XOff = dock2XMax > 0 ? snap(rng() * dock2XMax) : 0
+
+  // Decision 7: parking north/south swap
+  const parkingNorth = rng() < 0.5   // true → parking at north, repair at south
+
+  // Decision 8: clean_pump / rainwater vertical swap in level 1
+  const cpAbove = rng() < 0.5        // true → clean_pump above (north of) rainwater
+
+  // Decision 9: fan room depth variation
+  const rv_fan = rng()
+
+  // Decision 10: extra parking jitter (used even with user area override)
+  const rv_pk2 = rng()
+
+  // ── Fan room depth ───────────────────────────────────────────────
+  // Variable: user area takes precedence; otherwise ±8 % variation around ratio.
+  let FAN_ROOM_D
+  if (roomAreas.fan_room > 0) {
+    const derived = snap(roomAreas.fan_room * 1e6 / FAN_ROOM_W)
+    const jitter  = snap((rv_fan - 0.5) * 1200)  // ±600 mm
+    FAN_ROOM_D = Math.max(snap(bD * 0.30), Math.min(snap(bD * 0.60), derived + jitter))
+  } else {
+    const fanDBase = snap(bD * R_FAN_D)
+    FAN_ROOM_D = snap(fanDBase * 0.92 + rv_fan * fanDBase * 0.16)  // ±8 % range
+  }
+
+  // Scaled cpSplitY range (recomputed after FAN_ROOM_D is known so the split is
+  // always above the fan room)
+  const cpD_ref     = snap((17500 - 11800) * bD / BASE_BD)  // reference cp depth
+  const cpSplitYMin = FAN_ROOM_D + snap(cpD_ref * 0.80)
+  const cpSplitYMax = FAN_ROOM_D + snap(cpD_ref * 1.25)
+
+  // ── lv_control width ────────────────────────────────────────────
   let lvW
   if (roomAreas.lv_control > 0) {
     const derived = snap(roomAreas.lv_control * 1e6 / LV_D)
-    const jitter  = snap((rv_lv1 - 0.5) * 200)
+    const jitter  = snap((rv_lv1 - 0.5) * 1000)  // ±500 mm
     lvW = Math.max(lvWMin, Math.min(lvWMax, derived + jitter))
   } else {
     lvW = snap(lvWMin + rv_lv2 * (lvWMax - lvWMin))
   }
 
-  // clean_pump / rainwater Y-split
+  // ── clean_pump / rainwater Y-split ──────────────────────────────
   let cpSplitY
   if (roomAreas.clean_pump > 0) {
     const cpW_approx = snap(bW * R_CP_W)
     const cpD_target = snap(roomAreas.clean_pump * 1e6 / cpW_approx)
     const derived    = FAN_ROOM_D + cpD_target
-    const jitter     = snap((rv_cp1 - 0.5) * 200)
+    const jitter     = snap((rv_cp1 - 0.5) * 600)  // ±300 mm
+    cpSplitY = Math.max(cpSplitYMin, Math.min(cpSplitYMax, derived + jitter))
+  } else if (roomAreas.rainwater > 0) {
+    // Derive split from rainwater target area
+    const rwW_approx = bW - lvW - CORRIDOR_W
+    const rwD_target = snap(roomAreas.rainwater * 1e6 / Math.max(rwW_approx, 1000))
+    const derived    = bD - rwD_target
+    const jitter     = snap((rv_cp1 - 0.5) * 600)
     cpSplitY = Math.max(cpSplitYMin, Math.min(cpSplitYMax, derived + jitter))
   } else {
     cpSplitY = snap(cpSplitYMin + rv_cp2 * (cpSplitYMax - cpSplitYMin))
   }
 
-  // Parking / repair split within crane zone
-  // parking goes at the SOUTH end; repair_zone at the NORTH end (near dock entrance)
+  // ── Parking / repair split within crane zone ─────────────────────
   let parkingD
   if (roomAreas.parking > 0) {
     parkingD = snap(roomAreas.parking * 1e6 / CRANE_ZONE_W)
-    parkingD = Math.max(2000, Math.min(craneZoneD - 2000, parkingD))
+    // Apply ±5 % jitter even with user override for layout variety
+    const jitter = snap((rv_pk2 - 0.5) * craneZoneD * 0.10)
+    parkingD = Math.max(2000, Math.min(craneZoneD - 2000, parkingD + jitter))
   } else if (roomAreas.repair_zone > 0) {
-    const repD = snap(roomAreas.repair_zone * 1e6 / CRANE_ZONE_W)
-    parkingD   = Math.max(2000, craneZoneD - repD)
+    const repD   = snap(roomAreas.repair_zone * 1e6 / CRANE_ZONE_W)
+    const jitter = snap((rv_pk2 - 0.5) * craneZoneD * 0.10)
+    parkingD = Math.max(2000, Math.min(craneZoneD - 2000, craneZoneD - repD + jitter))
   } else {
-    // Default: parking gets proportional area from ROOM_DEFS default, with ±10% random jitter
+    // Proportional default with ±15 % random range
     const defParkingD = snap(bD * R_PARKING_D)
-    const jitter      = snap((rv_pk1 - 0.5) * craneZoneD * 0.1)
+    const jitter      = snap((rv_pk1 - 0.5) * craneZoneD * 0.30)
     parkingD = Math.max(2000, Math.min(craneZoneD - 2000, defParkingD + jitter))
   }
   const repairD = craneZoneD - parkingD
 
-  // dock offsets for variety
-  const dock1XOff = snap(rng() * Math.max(0, CRANE_ZONE_W - DOCK_W - 200))
-  const dock2XMax = Math.max(0, FAN_ROOM_W - DOCK_W - 4000)
-  const dock2XOff = dock2XMax > 0 ? snap(rng() * dock2XMax) : 0
-
   // ── Zone origins ────────────────────────────────────────────────
-  const craneX = trafoEast ? 0          : TRAFO_W
+  const craneX = trafoEast ? 0        : TRAFO_W
   const trafoX = trafoEast ? CRANE_ZONE_W : 0
   const svcX0  = craneX
 
@@ -195,15 +230,18 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
     sx += r.w
   }
 
+  // Parking/repair north-south position: parkingNorth=true → parking at north
+  // end of crane zone (beside service rooms), repair at south end.
+  const repairZoneY  = parkingNorth ? SERVICE_BELT + parkingD : SERVICE_BELT
+  const parkingZoneY = parkingNorth ? SERVICE_BELT            : SERVICE_BELT + repairD
+
   const ground = {
-    trafo1:      { x: trafoX,             y: 0,                      w: TRAFO_W,      d: TRAFO1_D },
-    trafo2:      { x: trafoX,             y: TRAFO1_D,               w: TRAFO_W,      d: TRAFO2_D },
+    trafo1:      { x: trafoX,              y: 0,            w: TRAFO_W,      d: TRAFO1_D  },
+    trafo2:      { x: trafoX,              y: TRAFO1_D,     w: TRAFO_W,      d: TRAFO2_D  },
     ...svcPlacements,
-    // Repair zone at NORTH end of crane zone (near dock hatch — equipment is lifted in)
-    repair_zone: { x: craneX,             y: SERVICE_BELT,           w: CRANE_ZONE_W, d: repairD   },
-    // Parking at SOUTH end of crane zone (accessible from south exterior)
-    parking:     { x: craneX,             y: SERVICE_BELT + repairD, w: CRANE_ZONE_W, d: parkingD  },
-    dock1:       { x: craneX + dock1XOff, y: SERVICE_BELT,           w: DOCK_W,       d: DOCK_W    },
+    repair_zone: { x: craneX,             y: repairZoneY,  w: CRANE_ZONE_W, d: repairD   },
+    parking:     { x: craneX,             y: parkingZoneY, w: CRANE_ZONE_W, d: parkingD  },
+    dock1:       { x: craneX + dock1XOff, y: SERVICE_BELT, w: DOCK_W,       d: DOCK_W    },
   }
 
   // ── Level 1 ─────────────────────────────────────────────────────
@@ -213,32 +251,44 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
   const pumpX = trafoEast ? 0        : lvW + CORRIDOR_W
   const rwW   = bW - lvW - CORRIDOR_W
   const cpW   = snap(bW * R_CP_W)
-  const cpD   = cpSplitY - FAN_ROOM_D
-  const rwD   = bD - cpSplitY
+
+  // Vertical dimensions for clean_pump / rainwater
+  const cpD = cpSplitY - FAN_ROOM_D
+  const rwD = bD - cpSplitY
+
+  // cpAbove=true  → clean_pump is north (top), rainwater is south (bottom)
+  // cpAbove=false → rainwater is north, clean_pump is south
+  const cpY      = cpAbove ? FAN_ROOM_D : cpSplitY
+  const rwY      = cpAbove ? cpSplitY   : FAN_ROOM_D
+  const cpD_act  = cpAbove ? cpD : rwD
+  const rwD_act  = cpAbove ? rwD : cpD
 
   const dock2X = fanX + 2000 + dock2XOff
-  const dock2Y = FAN_ROOM_D - DOCK_W - 1000
+  const dock2Y = Math.max(0, FAN_ROOM_D - DOCK_W - 1000)
 
   const level1 = {
-    fan_room:    { x: fanX,   y: 0,          w: FAN_ROOM_W, d: FAN_ROOM_D          },
-    dock2:       { x: dock2X, y: dock2Y,     w: DOCK_W,     d: DOCK_W              },
-    lv_control:  { x: lvX,    y: 0,          w: lvW,        d: LV_D                },
-    clean_pump:  { x: pumpX,  y: FAN_ROOM_D, w: cpW,        d: cpD                 },
-    rainwater:   { x: pumpX,  y: cpSplitY,   w: rwW,        d: rwD                 },
-    corridor_l1: { x: corrX,  y: FAN_ROOM_D, w: CORRIDOR_W, d: bD - FAN_ROOM_D     },
+    fan_room:    { x: fanX,   y: 0,          w: FAN_ROOM_W, d: FAN_ROOM_D       },
+    dock2:       { x: dock2X, y: dock2Y,     w: DOCK_W,     d: DOCK_W           },
+    lv_control:  { x: lvX,   y: 0,          w: lvW,        d: LV_D             },
+    clean_pump:  { x: pumpX, y: cpY,         w: cpW,        d: cpD_act          },
+    rainwater:   { x: pumpX, y: rwY,         w: rwW,        d: rwD_act          },
+    corridor_l1: { x: corrX, y: FAN_ROOM_D, w: CORRIDOR_W, d: bD - FAN_ROOM_D  },
   }
 
   // ── Assemble ────────────────────────────────────────────────────
   const svcLabels = { meter_main: '总水表', meter_sub: '水表', fire_equip: '消防' }
   const svcDesc   = svcOrder.map(r => svcLabels[r.id]).join('→')
   const sideLabel = trafoEast ? '变压器东置' : '变压器西置'
+  const northSouthLabel = parkingNorth ? '停车区北置' : '停车区南置'
+  const cpLabel   = cpAbove ? '清洁泵北' : '清洁泵南'
   const arRatio   = (bD / bW).toFixed(2)
 
   return {
     id:          `A-${groupId}-${variantIdx}`,
     label:       `维修区居中·${sideLabel}`,
     desc:        `建筑 ${(bW / 1000).toFixed(1)}m×${(bD / 1000).toFixed(1)}m（长宽比 ${arRatio}）` +
-                 `·${sideLabel}·服务用房 ${svcDesc}` +
+                 `·${sideLabel}·${northSouthLabel}·${cpLabel}` +
+                 `·服务用房 ${svcDesc}` +
                  `·维修区 ${Math.round(repairD * CRANE_ZONE_W / 1e6)} m²` +
                  `·停车区 ${Math.round(parkingD * CRANE_ZONE_W / 1e6)} m²`,
     ground,
@@ -252,5 +302,3 @@ export function generateTemplateA(seed, bW, bD, roomAreas = {}, groupId = 'S', v
     crane5:      { x: fanX,   y: 0,            w: FAN_ROOM_W,   d: FAN_ROOM_D },
   }
 }
-
-// ── Constraint evaluator ──────────────────────────────────────────────

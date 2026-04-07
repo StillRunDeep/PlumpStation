@@ -36,19 +36,22 @@ export function getDefaultUserParams() {
   return {
     buildingW: 18600,
     buildingD: 24000,
-    roomTargetAreas: {
-      trafo1: 20,
-      trafo2: 20,
-      parking: 80,
-      repair_zone: 60,
-      meter_main: 12,
-      meter_sub: 8,
-      fire_equip: 15,
-      lv_control: 65,
-      fan_room: 55,
-      clean_pump: 25,
-      rainwater: 25,
-      corridor_l1: 18,
+    // Default areas reflect actual proportional dimensions of the reference building.
+    // Only lv_control, clean_pump, parking, repair_zone, fan_room, rainwater
+    // are actively used by the layout generator; others are informational.
+    roomAreas: {
+      trafo1:       69,   // 8600 × 8000 ≈ 69 m² (proportional, not user-adjustable)
+      trafo2:       69,
+      parking:      172,  // 10000 × 17200 ≈ 172 m²
+      repair_zone:  34,   // 10000 × 3400  ≈ 34 m²
+      meter_main:   10,   // 2800 × 3400 ≈ 10 m²
+      meter_sub:    9,    // 2800 × 3300 ≈  9 m²
+      fire_equip:   7,    // 2800 × 2500 ≈  7 m²
+      lv_control:   141,  // 8500 × 17500 ≈ 141 m²
+      fan_room:     160,  // 13600 × 11800 ≈ 160 m²
+      clean_pump:   40,   // 6500 × 6100 ≈ 40 m²
+      rainwater:    57,   // 8500 × 6700 ≈ 57 m²
+      corridor_l1:  20,   // 1600 × 12200 ≈ 20 m²
     },
   };
 }
@@ -73,6 +76,7 @@ export async function getUserConfirmedParams() {
 
   const roomAreas = {};
 
+  // Rooms whose area inputs actively influence the layout generator
   const raRepair  = readOptional('ra-repair');
   const raParking = readOptional('ra-parking');
   const raLv      = readOptional('ra-lv');
@@ -86,11 +90,6 @@ export async function getUserConfirmedParams() {
   if (raCp      !== null) roomAreas.clean_pump  = raCp;
   if (raFan     !== null) roomAreas.fan_room    = raFan;
   if (raRw      !== null) roomAreas.rainwater   = raRw;
-
-  // 这里可以添加逻辑来展示提示规则
-  console.log("模拟用户交互：展示 A.0 中的所有可调参数及其初始值。");
-  console.log("对继承自上游模块的参数给出提示（此处未实现具体继承逻辑）。");
-  console.log("等待用户确认或修改，锁定 L、W 及各房间目标面积。");
 
   return { buildingW: Math.round(bW / 100) * 100, buildingD: Math.round(bD / 100) * 100, roomAreas };
 }
