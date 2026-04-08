@@ -59,67 +59,12 @@ export function renderAG00(r) {
       <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
     </div>
     <ul class="msg-list">${msgs}</ul>
-    ${r.valid ? stepsTable(r.rows) : ''}
+    ${r.valid ? `<details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>` : ''}
   `
 }
 
+// AG1-1：调蓄池计算 → 渲染 V_required, Z_stop, startLevels 等
 export function renderAG11(r) {
-  // 状态判断
-  const hasErrors = r.errors && r.errors.length > 0
-  const hasWarnings = r.warnings && r.warnings.length > 0
-  const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
-  const icon = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘'
-  const label = status === 'pass' ? '计算完成' : status === 'warn' ? '完成（有警告）' : '计算失败'
-
-  let msgs = ''
-  if (hasErrors) {
-    r.errors.forEach(e => { msgs += `<li><span class="icon err">✘</span> <span class="err">${e}</span></li>` })
-  }
-  if (hasWarnings) {
-    r.warnings.forEach(w => { msgs += `<li><span class="icon wrn">⚠</span> <span class="wrn">${w}</span></li>` })
-  }
-
-  const effClass = r.NPSH_ok ? 'pass' : 'fail'
-  const effMsg = r.NPSH_ok
-    ? `NPSH_a=${fmt(r.NPSH_a)} ≥ NPSH_r+0.5=${fmt(r.NPSH_r+0.5)}，满足 R-NPSH-01`
-    : `NPSH_a=${fmt(r.NPSH_a)} < NPSH_r+0.5=${fmt(r.NPSH_r+0.5)}，不满足 R-NPSH-01`
-
-  return `
-    <div style="margin-bottom:12px">
-      <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
-    </div>
-    ${msgs ? `<ul class="msg-list">${msgs}</ul>` : ''}
-    ${r.valid !== false ? stepsTable(r.rows) : ''}
-    ${r.valid !== false ? `
-    <div class="result-summary pass">
-      ${kvRow('单泵设计流量 Q_pump', fmt(r.Q_pump, 4) + ' m³/s')}
-      ${kvRow('系统总扬程 H_total', fmt(r.H_total, 2) + ' m')}
-      ${kvRow('轴功率 P_shaft', fmt(r.P_shaft, 2) + ' kW')}
-      ${kvRow('电机功率 P_motor', fmt(r.P_motor, 2) + ' kW')}
-      ${kvRow('进水管 DN_inlet', 'DN ' + r.DN_inlet)}
-      ${kvRow('出水管 DN_outlet', 'DN ' + r.DN_outlet)}
-    </div>
-    <div class="result-summary ${effClass}" style="margin-top:8px;font-size:12px">
-      <strong>NPSH校验（R-NPSH-01）：</strong>${effMsg}
-    </div>
-    ` : ''}
-  `
-}
-
-export function renderAG12(r) {
-  return `
-    ${stepsTable(r.rows)}
-    <div class="result-summary pass">
-      ${kvRow('泵间净距', fmt(r.d_spacing, 1) + ' m')}
-      ${kvRow('端部距墙净距', fmt(r.e_wall, 1) + ' m')}
-      ${kvRow('维护间净长 L', fmt(r.L, 1) + ' m')}
-      ${kvRow('维护间净宽 W', fmt(r.W, 1) + ' m')}
-    </div>
-  `
-}
-
-export function renderAG21(r) {
-  // 状态判断
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
   const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
@@ -170,7 +115,7 @@ export function renderAG21(r) {
       <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
     </div>
     ${msgs ? `<ul class="msg-list">${msgs}</ul>` : ''}
-    ${r.valid !== false ? stepsTable(r.rows) : ''}
+    ${r.valid !== false ? `<details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>` : ''}
     ${r.valid !== false ? `
     <div class="result-summary pass">
       ${kvRow('所需调蓄容积 V_required', fmt(r.V_required, 1) + ' m³')}
@@ -180,6 +125,61 @@ export function renderAG21(r) {
     </div>
     ${staggerTable}
     ${diagram}
+    ` : ''}
+  `
+}
+
+export function renderAG12(r) {
+  return `
+    <details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>
+    <div class="result-summary pass">
+      ${kvRow('泵间净距', fmt(r.d_spacing, 1) + ' m')}
+      ${kvRow('端部距墙净距', fmt(r.e_wall, 1) + ' m')}
+      ${kvRow('维护间净长 L', fmt(r.L, 1) + ' m')}
+      ${kvRow('维护间净宽 W', fmt(r.W, 1) + ' m')}
+    </div>
+  `
+}
+
+// AG2-1：水泵选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
+export function renderAG21(r) {
+  const hasErrors = r.errors && r.errors.length > 0
+  const hasWarnings = r.warnings && r.warnings.length > 0
+  const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
+  const icon = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘'
+  const label = status === 'pass' ? '计算完成' : status === 'warn' ? '完成（有警告）' : '计算失败'
+
+  let msgs = ''
+  if (hasErrors) {
+    r.errors.forEach(e => { msgs += `<li><span class="icon err">✘</span> <span class="err">${e}</span></li>` })
+  }
+  if (hasWarnings) {
+    r.warnings.forEach(w => { msgs += `<li><span class="icon wrn">⚠</span> <span class="wrn">${w}</span></li>` })
+  }
+
+  const effClass = r.NPSH_ok ? 'pass' : 'fail'
+  const effMsg = r.NPSH_ok
+    ? `NPSH_a=${fmt(r.NPSH_a)} ≥ NPSH_r+0.5=${fmt(r.NPSH_r+0.5)}，满足 R-NPSH-01`
+    : `NPSH_a=${fmt(r.NPSH_a)} < NPSH_r+0.5=${fmt(r.NPSH_r+0.5)}，不满足 R-NPSH-01`
+
+  return `
+    <div style="margin-bottom:12px">
+      <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
+    </div>
+    ${msgs ? `<ul class="msg-list">${msgs}</ul>` : ''}
+    ${r.valid !== false ? `<details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>` : ''}
+    ${r.valid !== false ? `
+    <div class="result-summary pass">
+      ${kvRow('单泵设计流量 Q_pump', fmt(r.Q_pump, 4) + ' m³/s')}
+      ${kvRow('系统总扬程 H_total', fmt(r.H_total, 2) + ' m')}
+      ${kvRow('轴功率 P_shaft', fmt(r.P_shaft, 2) + ' kW')}
+      ${kvRow('电机功率 P_motor', fmt(r.P_motor, 2) + ' kW')}
+      ${kvRow('进水管 DN_inlet', 'DN ' + r.DN_inlet)}
+      ${kvRow('出水管 DN_outlet', 'DN ' + r.DN_outlet)}
+    </div>
+    <div class="result-summary ${effClass}" style="margin-top:8px;font-size:12px">
+      <strong>NPSH校验（R-NPSH-01）：</strong>${effMsg}
+    </div>
     ` : ''}
   `
 }

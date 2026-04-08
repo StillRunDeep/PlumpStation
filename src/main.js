@@ -95,7 +95,7 @@ async function runCalculation() {
     Z_top:    ag00Params.Z_top,
   }
   const ag1Result = runAG11(ag1Params)  // ag11-pool-depth.js = AG1-1 调蓄池计算
-  document.getElementById('card-ag11').innerHTML = renderAG21(ag1Result)
+  document.getElementById('card-ag11').innerHTML = renderAG11(ag1Result)
 
   // ── AG2-1: 水泵选型计算 ───────────────────────────────────────────
   const ag2Params = {
@@ -110,7 +110,7 @@ async function runCalculation() {
   }
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
   const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
-  document.getElementById('card-ag21').innerHTML = renderAG11(ag2Result)
+  document.getElementById('card-ag21').innerHTML = renderAG21(ag2Result)
 
   // ── AG1-2: 维护间尺寸 ─────────────────────────────────────────────
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride

@@ -24,9 +24,11 @@ export function stepRow(label, formula, value, unit) {
 }
 
 export function stepsTable(rows) {
+  const dataRows = rows.filter(row => !row.includes('═'))
+  if (dataRows.length === 0) return ''
   return `<table class="steps-table">
     <thead><tr><th>参数</th><th>计算式</th><th style="text-align:right">结果</th></tr></thead>
-    <tbody>${rows.join('')}</tbody>
+    <tbody>${dataRows.join('')}</tbody>
   </table>`
 }
 

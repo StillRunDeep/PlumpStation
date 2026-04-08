@@ -204,11 +204,12 @@ details .adv-grid { margin-top: 12px; }
   padding: 5px 8px;
   border-bottom: 1px solid #edf2f7;
   vertical-align: top;
+  word-break: break-word;
 }
 .steps-table tr:last-child td { border-bottom: none; }
 .steps-table tr:nth-child(even) td { background: #f9fbfe; }
 .steps-table .formula { color: #555; font-size: 12px; font-family: 'Courier New', monospace; }
-.steps-table .value { font-weight: 600; color: #1a5276; text-align: right; white-space: nowrap; }
+.steps-table .value { font-weight: 600; color: #1a5276; text-align: right; }
 
 .result-summary {
   border-radius: 7px;
