@@ -24,7 +24,7 @@
       </div>
       <div class="form-group">
         <label>工作水泵台数 N（台）</label>
-        <input type="number" id="inp-N" min="1" max="8" step="1" placeholder="例：3" value="3">
+        <input type="number" id="inp-N" min="1" max="8" step="1" placeholder="例：2" value="2">
         <span class="hint">不含备用泵，建议 2～6 台</span>
       </div>
       <div class="form-group">
@@ -37,6 +37,11 @@
     <details>
       <summary>高级参数（可选）</summary>
       <div class="form-grid adv-grid">
+        <div class="form-group">
+          <label>备用泵台数 N_spare（台）</label>
+          <input type="number" id="inp-N-spare" min="0" max="3" step="1" value="0" placeholder="默认：0">
+          <span class="hint">0 = 无备用泵；通常设 1 台</span>
+        </div>
         <div class="form-group">
           <label>电机功率覆盖值（kW）</label>
           <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG1-1 计算">
@@ -55,6 +60,9 @@
       </div>
     </details>
 
+    <details id="topology-details" open>
+      <summary>设备拓扑配置</summary>
+      <div id="topology-editor-wrap"></div>
     <!-- ══ AG4-1 建筑平面参数 ══ -->
     <details id="ag41-params-wrap">
       <summary>AG4-1 建筑平面参数（第6章 模版A）</summary>
@@ -172,6 +180,14 @@
           <span>AG0-0</span><span class="agent-label">用户对话 · 参数验证</span>
         </div>
         <div class="card-body" id="card-ag00"></div>
+      </div>
+
+      <!-- AG0-1 -->
+      <div class="agent-card card-ag01">
+        <div class="card-header">
+          <span>AG0-1</span><span class="agent-label">拓扑解析 · 连接关系验证</span>
+        </div>
+        <div class="card-body" id="card-ag01"></div>
       </div>
 
       <!-- AG1-1 -->
