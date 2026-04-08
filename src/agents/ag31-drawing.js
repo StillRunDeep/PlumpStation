@@ -5,7 +5,7 @@ import { topologyToAG31Params } from './ag01-topology.js'
 
 export function runAG31(N, ag12, ag21, S, topology = null) {
   const { L, W, d_spacing, e_wall, w_pump, d_pump, N_total } = ag12
-  const { h_pool, stopLevel, startLevel, alarmLevel } = ag21
+  const { h_active: h_pool, Z_stop: stopLevel, Z_start1: startLevel, Z_alarm_high: alarmLevel } = ag21
 
   // 从拓扑推导各泵的房间归属（如无拓扑则全部在泵房）
   const topoParams = topology ? topologyToAG31Params(topology) : null

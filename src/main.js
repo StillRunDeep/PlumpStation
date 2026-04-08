@@ -2,9 +2,9 @@ import './style.css'
 
 import { runAG00 } from './agents/ag00-validate.js'
 import { runAG01 } from './agents/ag01-topology.js'
-import { runAG11 } from './agents/ag11-pump-spec.js'
+import { runAG11 } from './agents/ag11-pool-depth.js'
 import { runAG12 } from './agents/ag12-maintenance-room.js'
-import { runAG21 } from './agents/ag21-pool-depth.js'
+import { runAG21 } from './agents/ag21-pump-spec.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
@@ -43,26 +43,30 @@ function updateRepairZoneHint(ag12) {
 // ── Main calculation controller ───────────────────────────────────────
 
 async function runCalculation() {
-  const Q        = parseFloat(document.getElementById('inp-Q').value)
-  const N        = parseInt(document.getElementById('inp-N').value, 10)
-  const N_spare  = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
-  const S        = parseFloat(document.getElementById('inp-S').value)
-  const h_outlet = parseFloat(document.getElementById('inp-h-outlet').value)
-  const pipe_len = parseFloat(document.getElementById('inp-pipe-len').value)
-  const hOut     = isNaN(h_outlet) ? 1.0 : h_outlet
-  const pLen     = isNaN(pipe_len) ? 50  : pipe_len
+  // ── AG0-0: 暴雨分析与径流估算 ────────────────────────────────────
+  const ag00Params = {
+    zone:     document.getElementById('inp-zone').value,
+    T:        parseInt(document.getElementById('inp-T').value, 10),
+    t_d:      parseFloat(document.getElementById('inp-td').value),
+    A:        parseFloat(document.getElementById('inp-A').value),
+    C:        parseFloat(document.getElementById('inp-C').value),
+    N:        parseInt(document.getElementById('inp-N').value, 10),
+    S:        parseFloat(document.getElementById('inp-S').value),
+    Z_bottom: parseFloat(document.getElementById('inp-z-bottom').value),
+    Z_top:    parseFloat(document.getElementById('inp-z-top').value),
+  }
 
-  // AG0-0: validate
-  const ag00 = runAG00(Q, N, S)
+  const ag00 = runAG00(ag00Params)
   document.getElementById('card-ag00').innerHTML = renderAG00(ag00)
 
   const panel = document.getElementById('results-panel')
   panel.hidden = false
 
   // AG0-1: 若 N 或 N_spare 变化则重置默认拓扑
-  if (N !== _lastTopoN || N_spare !== _lastTopoSpare) {
-    setTopologyFromN(N, N_spare)
-    _lastTopoN     = N
+  const N_spare = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
+  if (ag00Params.N !== _lastTopoN || N_spare !== _lastTopoSpare) {
+    setTopologyFromN(ag00Params.N, N_spare)
+    _lastTopoN     = ag00Params.N
     _lastTopoSpare = N_spare
   }
 
@@ -80,31 +84,48 @@ async function runCalculation() {
     return
   }
 
-  // AG2-1: pool depth (provides h_pool for AG1-1 head calculation)
-  const ag21 = runAG21(Q / N, N, S)
-  document.getElementById('card-ag21').innerHTML = renderAG21(ag21)
+  // ── AG1-1: 调蓄池计算 ─────────────────────────────────────────────
+  const ag1Params = {
+    Q:        ag00.Q,
+    Q_single: ag00.Q_single,
+    Q_p:      ag00.Q_p,
+    N:        ag00Params.N,
+    S:        ag00Params.S,
+    Z_bottom: ag00Params.Z_bottom,
+    Z_top:    ag00Params.Z_top,
+  }
+  const ag1Result = runAG11(ag1Params)  // ag11-pool-depth.js = AG1-1 调蓄池计算
+  document.getElementById('card-ag11').innerHTML = renderAG21(ag1Result)
 
-  // AG1-1: single pump spec
-  const ag11 = runAG11(Q, N, ag21.h_pool, hOut, pLen)
-  document.getElementById('card-ag11').innerHTML = renderAG11(ag11)
+  // ── AG2-1: 水泵选型计算 ───────────────────────────────────────────
+  const ag2Params = {
+    Q_single:    ag00.Q_single,
+    Z_stop:      ag1Result.Z_stop,
+    Z_discharge: parseFloat(document.getElementById('inp-z-discharge').value) || 5.0,
+    L:           parseFloat(document.getElementById('inp-pipe-len').value) || 50,
+    n:           parseFloat(document.getElementById('inp-n').value) || 0.013,
+    η_hyd:       parseFloat(document.getElementById('inp-eta-hyd').value) || 0.82,
+    η_mot:       parseFloat(document.getElementById('inp-eta-mot').value) || 0.93,
+    NPSH_r:      parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
+  }
+  const motorOverride = parseFloat(document.getElementById('inp-motor').value)
+  const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
+  document.getElementById('card-ag21').innerHTML = renderAG11(ag2Result)
 
-  // AG1-2: maintenance room dimensions
-  const motorOverride  = parseFloat(document.getElementById('inp-motor').value)
-  const effectiveMotor = isNaN(motorOverride) ? ag11.P_motor : motorOverride
-  const ag12 = runAG12(N, effectiveMotor, N_spare)
-  ag12.DN_label = ag11.DN_outlet
+  // ── AG1-2: 维护间尺寸 ─────────────────────────────────────────────
+  const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
+  const ag12 = runAG12(ag00Params.N, effectiveMotor, N_spare)
+  ag12.DN_label = ag2Result.DN_outlet
   document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
 
-  // AG3-1: pump-room SVG (plan + section)，从 ag01 取拓扑（单向数据流）
-  runAG31(N, ag12, ag21, S, ag01.topology)
+  // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
+  runAG31(ag00Params.N, ag12, ag1Result, ag00Params.S, ag01.topology)
 
   // Update repair_zone hint from AG1-2 before reading AG4-1 params
   updateRepairZoneHint(ag12)
 
-  // AG4-1: building layout generation with user parameters
+  // ── AG4-1/AG4-2: 布局生成与评分 ─────────────────────────────────
   const ag41Variants = await runAG41()
-
-  // AG4-2: evaluation & scoring
   const ag42Variants = runAG42(ag41Variants)
   renderLayoutPanel(ag42Variants)
 

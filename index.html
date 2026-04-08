@@ -44,18 +44,100 @@
         </div>
         <div class="form-group">
           <label>电机功率覆盖值（kW）</label>
-          <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG1-1 计算">
-          <span class="hint">留空则使用 AG1-1 计算值；填入则强制覆盖（影响泵间距 R-LA-03）</span>
+          <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG2-1 计算">
+          <span class="hint">留空则使用 AG2-1 计算值；填入则强制覆盖（影响泵间距）</span>
         </div>
         <div class="form-group">
-          <label>出水口超高 h_outlet（m）</label>
-          <input type="number" id="inp-h-outlet" min="0" step="0.1" placeholder="默认：1.0">
-          <span class="hint">地面（集水池顶）到出水排放点高差</span>
-        </div>
-        <div class="form-group">
-          <label>出水管总长（m）</label>
-          <input type="number" id="inp-pipe-len" min="1" step="1" placeholder="默认：50">
+          <label>出水管总长 L（m）</label>
+          <input type="number" id="inp-pipe-len" min="1" step="1" value="50">
           <span class="hint">用于估算管路摩擦损失</span>
+        </div>
+      </div>
+    </details>
+
+    <details id="rainfall-params-wrap">
+      <summary>暴雨与径流参数（AG0-0）</summary>
+      <div class="form-grid adv-grid">
+        <div class="form-group">
+          <label>暴雨分区</label>
+          <select id="inp-zone">
+            <option value="tungkl" selected>香港天文台总部</option>
+            <option value="tai-mo-shan">大帽山</option>
+            <option value="west-lantau">西部大屿山</option>
+            <option value="north">北区</option>
+          </select>
+          <span class="hint">用于查IDF常数表（手册第4.3节）</span>
+        </div>
+        <div class="form-group">
+          <label>设计重现期 T（年）</label>
+          <select id="inp-T">
+            <option value="10" selected>10年（值班泵）</option>
+            <option value="50">50年（最大容量校核）</option>
+            <option value="200">200年（洪水检验）</option>
+          </select>
+          <span class="hint">值班泵按10年一遇设计（手册第14.6.2节）</span>
+        </div>
+        <div class="form-group">
+          <label>暴雨历时 t_d（min）</label>
+          <input type="number" id="inp-td" min="10" max="240" step="10" value="120">
+          <span class="hint">≤240min用IDF公式；>240min用DDF表</span>
+        </div>
+        <div class="form-group">
+          <label>集水区面积 A（km²）</label>
+          <input type="number" id="inp-A" min="0.01" step="0.1" value="1.0">
+          <span class="hint">汇水面积，用于径流估算</span>
+        </div>
+        <div class="form-group">
+          <label>径流系数 C</label>
+          <input type="number" id="inp-C" min="0.05" max="1.0" step="0.05" value="0.90">
+          <span class="hint">城市地区典型值0.85-0.95</span>
+        </div>
+      </div>
+    </details>
+
+    <details id="pool-params-wrap">
+      <summary>集水池参数（AG1-1）</summary>
+      <div class="form-grid adv-grid">
+        <div class="form-group">
+          <label>池底标高 Z_bottom（mPD）</label>
+          <input type="number" id="inp-z-bottom" step="0.1" value="-10.0">
+          <span class="hint">集水池底部标高</span>
+        </div>
+        <div class="form-group">
+          <label>池顶标高 Z_top（mPD）</label>
+          <input type="number" id="inp-z-top" step="0.1" value="5.0">
+          <span class="hint">集水池顶部标高</span>
+        </div>
+        <div class="form-group">
+          <label>排放口标高 Z_discharge（mPD）</label>
+          <input type="number" id="inp-z-discharge" step="0.1" value="5.0">
+          <span class="hint">出水口绝对标高</span>
+        </div>
+      </div>
+    </details>
+
+    <details id="pump-params-wrap">
+      <summary>水泵与管道参数（AG2-1/AG2-2）</summary>
+      <div class="form-grid adv-grid">
+        <div class="form-group">
+          <label>水力效率 η_hyd</label>
+          <input type="number" id="inp-eta-hyd" min="0.5" max="1.0" step="0.01" value="0.82">
+          <span class="hint">手册要求≥0.82</span>
+        </div>
+        <div class="form-group">
+          <label>电机效率 η_mot</label>
+          <input type="number" id="inp-eta-mot" min="0.5" max="1.0" step="0.01" value="0.93">
+          <span class="hint">手册要求≥0.93</span>
+        </div>
+        <div class="form-group">
+          <label>曼宁粗糙系数 n</label>
+          <input type="number" id="inp-n" min="0.010" max="0.020" step="0.001" value="0.013">
+          <span class="hint">混凝土管典型值0.013-0.015</span>
+        </div>
+        <div class="form-group">
+          <label>必需汽蚀余量 NPSH_r（m）</label>
+          <input type="number" id="inp-npsh-r" min="0" step="0.1" value="3.0">
+          <span class="hint">大型轴流泵典型值3-5m</span>
         </div>
       </div>
     </details>
@@ -189,10 +271,10 @@
         <div class="card-body" id="card-ag01"></div>
       </div>
 
-      <!-- AG1-1 -->
+      <!-- AG2-1 -->
       <div class="agent-card card-ag11">
         <div class="card-header">
-          <span>AG1-1</span><span class="agent-label">单泵规格计算</span>
+          <span>AG2-1</span><span class="agent-label">水泵选型计算</span>
         </div>
         <div class="card-body" id="card-ag11"></div>
       </div>
@@ -205,10 +287,10 @@
         <div class="card-body" id="card-ag12"></div>
       </div>
 
-      <!-- AG2-1 -->
+      <!-- AG1-1 -->
       <div class="agent-card card-ag21">
         <div class="card-header">
-          <span>AG2-1</span><span class="agent-label">水池体积深度计算</span>
+          <span>AG1-1</span><span class="agent-label">调蓄池计算</span>
         </div>
         <div class="card-body" id="card-ag21"></div>
       </div>
