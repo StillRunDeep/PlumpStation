@@ -6,12 +6,28 @@ let _variants = []
 let _selectedIdx = 0
 const VW = 1080, VH = 560
 
-/**
- * Build the score comparison table shown above the variant cards.
- */
+// ── Group metadata ────────────────────────────────────────────────────
+
+const GROUP_LABELS = {
+  'S':    { title: '用户指定尺寸（同底面积基准）', subtitle: '5 个方案', color: '#1a3a5c' },
+  'R1.0': { title: '长宽比 1.0（方形）',           subtitle: '3 个方案', color: '#1a6535' },
+  'R1.2': { title: '长宽比 1.2',                   subtitle: '3 个方案', color: '#1a6535' },
+  'R1.5': { title: '长宽比 1.5',                   subtitle: '3 个方案', color: '#1a6535' },
+  'R1.8': { title: '长宽比 1.8',                   subtitle: '3 个方案', color: '#1a6535' },
+  'R2.0': { title: '长宽比 2.0',                   subtitle: '3 个方案', color: '#1a6535' },
+  'R2.4': { title: '长宽比 2.4',                   subtitle: '3 个方案', color: '#1a6535' },
+}
+
+function groupLabel(t) {
+  return GROUP_LABELS[t.groupId] || { title: t.groupId, subtitle: '', color: '#555' }
+}
+
+// ── Comparison table ──────────────────────────────────────────────────
+
 function renderComparisonTable(variants) {
   const bdSign = v => v >= 0 ? `+${v}` : `${v}`
 
+  let lastGroupId = null
   const rows = variants.map((v, i) => {
     const t   = v.template
     const bd  = v.breakdown || {}
@@ -22,6 +38,7 @@ function renderComparisonTable(variants) {
       : `<span style="color:#c0392b">⚠ ${v.violations.length}</span>`
     const area = Math.round(t.buildingW * t.buildingD / 1e6)
     const eff  = v.spaceEfficiency != null ? (v.spaceEfficiency * 100).toFixed(1) + '%' : '—'
+    const ar   = t.aspectRatio != null ? t.aspectRatio.toFixed(2) : '—'
 
     const bdDetail = `
       <details><summary style="cursor:pointer;font-size:11px;color:#666">明细</summary>
@@ -36,10 +53,26 @@ function renderComparisonTable(variants) {
         <tr><td style="padding:1px 6px">约束违反</td><td style="text-align:right;color:#c0392b">${bdSign(bd.violations ?? 0)}</td></tr>
       </table></details>`
 
-    return `
+    // Insert a group-separator row when the groupId changes
+    let groupRow = ''
+    if (t.groupId !== lastGroupId) {
+      lastGroupId = t.groupId
+      const gl = groupLabel(t)
+      const dims = `${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m`
+      groupRow = `
+        <tr>
+          <td colspan="9" style="background:${gl.color};color:#fff;padding:5px 10px;
+              font-size:12px;font-weight:700;letter-spacing:.5px">
+            ${gl.title}（${dims}）&ensp;<span style="opacity:.75;font-weight:400">${gl.subtitle}</span>
+          </td>
+        </tr>`
+    }
+
+    return groupRow + `
       <tr style="cursor:pointer;background:${i % 2 === 0 ? '#f8fafc' : '#fff'}" onclick="window._ag41SelectVariant(${i})">
         <td style="text-align:center;font-weight:600">${i + 1}</td>
         <td><strong>${t.id}</strong><br><span style="font-size:11px;color:#555">${t.label}</span></td>
+        <td style="text-align:center;font-size:11px">${ar}</td>
         <td style="text-align:right;font-weight:700;color:#1a5276">${v.score}</td>
         <td style="text-align:right">${area}</td>
         <td style="text-align:right">${eff}</td>
@@ -55,6 +88,7 @@ function renderComparisonTable(variants) {
         <tr style="background:#1a3a5c;color:#fff;font-size:12px">
           <th style="padding:7px 8px">排名</th>
           <th style="padding:7px 8px;text-align:left">方案</th>
+          <th style="padding:7px 8px">长宽比</th>
           <th style="padding:7px 8px;text-align:right">综合得分</th>
           <th style="padding:7px 8px;text-align:right">占地 m²</th>
           <th style="padding:7px 8px;text-align:right">空间有效率</th>
@@ -69,8 +103,72 @@ function renderComparisonTable(variants) {
     </table>`
 }
 
+// ── Variant card grid with group headers ──────────────────────────────
+
+function renderVariantCards(variants) {
+  const sections = []
+  let currentGroup = null
+  let currentCards = []
+
+  const flush = () => {
+    if (!currentGroup) return
+    const gl = groupLabel({ groupId: currentGroup })
+    const firstV = variants.find(v => v.template.groupId === currentGroup)
+    const dims   = firstV
+      ? `${(firstV.template.buildingW / 1000).toFixed(1)} m × ${(firstV.template.buildingD / 1000).toFixed(1)} m`
+      : ''
+    sections.push(`
+      <div class="variant-group">
+        <div class="variant-group-header" style="background:${gl.color}">
+          <span>${gl.title}</span>
+          <span class="vg-dims">${dims}</span>
+          <span class="vg-count">${gl.subtitle}</span>
+        </div>
+        <div class="variant-group-cards">
+          ${currentCards.join('')}
+        </div>
+      </div>`)
+    currentCards = []
+  }
+
+  variants.forEach((v, i) => {
+    const t = v.template
+    if (t.groupId !== currentGroup) {
+      flush()
+      currentGroup = t.groupId
+    }
+
+    const thumbSvg = renderLayoutSVG(v, 360, 200, { showDims: false, showCrane: true })
+    currentCards.push(`
+      <div class="variant-card ${i === 0 ? 'selected' : ''}" data-idx="${i}"
+           onclick="window._ag41SelectVariant(${i})">
+        <div class="vc-header">
+          <span>方案 ${t.id}</span>
+          <span class="vc-score">得分 ${v.score}</span>
+        </div>
+        <svg class="vc-thumb" viewBox="0 0 360 200">${thumbSvg}</svg>
+        <div class="vc-desc">${t.desc}</div>
+        <div class="vc-metrics">
+          ${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m
+          &nbsp;|&nbsp; ${Math.round(t.buildingW * t.buildingD / 1e6)} m²
+          &nbsp;|&nbsp; 有效率 ${v.spaceEfficiency != null ? Math.round(v.spaceEfficiency * 100) + '%' : '—'}
+          ${v.violations.length > 0 ? `&nbsp;|&nbsp; <span style="color:#c0392b">⚠ ${v.violations.length} 项约束</span>` : ''}
+        </div>
+        <button class="vc-select-btn" onclick="event.stopPropagation();window._ag41ConfirmVariant(${i})">
+          选用此方案 →
+        </button>
+      </div>
+    `)
+  })
+  flush()
+
+  return sections.join('')
+}
+
+// ── Public render function ────────────────────────────────────────────
+
 /**
- * Render the AG4-1 panel: comparison table + thumbnail cards + detail view.
+ * Render the AG4-1 panel: comparison table + grouped thumbnail cards + detail view.
  * @param {Array} variants  Sorted result from runAG42()
  */
 export function renderLayoutPanel(variants) {
@@ -83,43 +181,20 @@ export function renderLayoutPanel(variants) {
   const cmp = document.getElementById('layout-comparison')
   if (cmp) cmp.innerHTML = renderComparisonTable(variants)
 
-  container.innerHTML = variants.map((v, i) => {
-    const t = v.template
-    const thumbSvg = renderLayoutSVG(v, 360, 200, { showDims: false, showCrane: true })
-    return `
-      <div class="variant-card ${i === 0 ? 'selected' : ''}" data-idx="${i}"
-           onclick="window._ag41SelectVariant(${i})">
-        <div class="vc-header">
-          <span>方案 ${t.id}：${t.label}</span>
-          <span class="vc-score">得分 ${v.score}</span>
-        </div>
-        <svg class="vc-thumb" viewBox="0 0 360 200">${thumbSvg}</svg>
-        <div class="vc-desc">${t.desc}</div>
-        <div class="vc-metrics">
-          占地：${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m
-          &nbsp;|&nbsp; 面积：${Math.round(t.buildingW * t.buildingD / 1e6)} m²
-          &nbsp;|&nbsp; 空间有效率：${v.spaceEfficiency != null ? Math.round(v.spaceEfficiency * 100) + '%' : '—'}
-          ${v.violations.length > 0 ? `&nbsp;|&nbsp; <span style="color:#c0392b">⚠ ${v.violations.length} 项约束未满足</span>` : ''}
-        </div>
-        <button class="vc-select-btn" onclick="event.stopPropagation();window._ag41ConfirmVariant(${i})">
-          选用此方案 →
-        </button>
-      </div>
-    `
-  }).join('')
+  container.innerHTML = renderVariantCards(variants)
 
-  // Update badge to reflect actual variant count
-  const badge = document.getElementById('ag41-badge')
-  if (badge) badge.textContent = `${variants.length} 种方案`
+  // Update badge
+  const aCount = variants.filter(v => v.template.id?.startsWith('A')).length
+  const badge  = document.getElementById('ag41-badge')
+  if (badge) badge.textContent = `${aCount} 种模版A方案`
 
-  // Show and render the first variant in detail
+  // Show first variant detail
   selectVariant(0)
   document.getElementById('card-ag41-wrap').hidden = false
 }
 
-/**
- * Select a variant: highlight card + refresh detail SVG.
- */
+// ── Detail view ───────────────────────────────────────────────────────
+
 function selectVariant(idx) {
   _selectedIdx = idx
   document.querySelectorAll('.variant-card').forEach((el, i) =>
@@ -134,18 +209,28 @@ function selectVariant(idx) {
   svg.innerHTML = renderLayoutSVGDual(v, VW, VH)
   initSvgZoomPan(svg, VW, VH, { zIn: 'btn-ag41-zin', zOut: 'btn-ag41-zout', zRst: 'btn-ag41-rst' })
 
+  // Update detail header
+  const t      = v.template
+  const header = document.getElementById('layout-detail-title')
+  if (header) {
+    header.textContent =
+      `方案 ${t.id}：${t.label}  —  ` +
+      `${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m  ` +
+      `得分 ${v.score}`
+  }
+
   document.getElementById('layout-detail-wrap').hidden = false
 }
 
-// Expose to global scope for inline onclick handlers
-window._ag41SelectVariant  = selectVariant
+// ── Global handlers ───────────────────────────────────────────────────
 
-window._ag41ConfirmVariant = function(idx) {
+window._ag41SelectVariant = selectVariant
+
+window._ag41ConfirmVariant = function (idx) {
   _selectedIdx = idx
   selectVariant(idx)
-  // Notify main flow that a layout was confirmed
   window.dispatchEvent(new CustomEvent('ag41-layout-confirmed', {
-    detail: { variant: _variants[idx] }
+    detail: { variant: _variants[idx] },
   }))
 }
 

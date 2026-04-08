@@ -16,9 +16,33 @@ import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/t
 let _lastTopoN     = null
 let _lastTopoSpare = 0
 
-// ── Main calculation controller ───────────────────────────────────
+// ── AG4-1 parameter helpers ───────────────────────────────────────────
 
-function runCalculation() {
+
+/**
+ * Auto-fill the repair_zone area hint from AG1-2 output.
+ * The repair zone should be at least L × W from the maintenance-room calc.
+ */
+function updateRepairZoneHint(ag12) {
+  const noteEl = document.getElementById('ra-repair-note')
+  const inputEl = document.getElementById('ra-repair')
+  if (!noteEl || !inputEl) return
+
+  const area = Math.ceil(ag12.L * ag12.W)  // m²
+  noteEl.innerHTML =
+    `继承自 AG1-2：维护间净长 <strong>${ag12.L.toFixed(1)} m</strong> × ` +
+    `净宽 <strong>${ag12.W.toFixed(1)} m</strong> ≈ <strong>${area} m²</strong>。` +
+    `当前输入值为用户指定值；留空则使用比例算法默认值。`
+
+  // Only auto-fill if the user hasn't entered a value
+  if (!inputEl.value) {
+    inputEl.placeholder = `≈ ${area}（AG1-2）`
+  }
+}
+
+// ── Main calculation controller ───────────────────────────────────────
+
+async function runCalculation() {
   const Q        = parseFloat(document.getElementById('inp-Q').value)
   const N        = parseInt(document.getElementById('inp-N').value, 10)
   const N_spare  = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
@@ -74,15 +98,20 @@ function runCalculation() {
   // AG3-1: pump-room SVG (plan + section)，从 ag01 取拓扑（单向数据流）
   runAG31(N, ag12, ag21, S, ag01.topology)
 
-  // AG4-1: building layout generation → AG4-2: evaluation & scoring
-  const ag41Variants = runAG41()
+  // Update repair_zone hint from AG1-2 before reading AG4-1 params
+  updateRepairZoneHint(ag12)
+
+  // AG4-1: building layout generation with user parameters
+  const ag41Variants = await runAG41()
+
+  // AG4-2: evaluation & scoring
   const ag42Variants = runAG42(ag41Variants)
   renderLayoutPanel(ag42Variants)
 
   panel.scrollIntoView({ behavior: 'smooth' })
 }
 
-// ── Event wiring ──────────────────────────────────────────────────
+// ── Event wiring ──────────────────────────────────────────────────────
 
 // ── 初始化 AG0-1 拓扑编辑器 ──────────────────────────────────────────
 const _initN = parseInt(document.getElementById('inp-N').value, 10) || 3

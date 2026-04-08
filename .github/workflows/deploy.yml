@@ -2,7 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [0330discussion]
+    branches:
+      - main_0407_AutoLayout
   workflow_dispatch:
 
 permissions:
