@@ -16,155 +16,270 @@
   <!-- ══ 输入面板 ══ -->
   <section class="input-panel">
     <h2>设计参数输入</h2>
+
+    <!-- 基础参数：五个核心设计参数直接展示 -->
     <div class="form-grid">
       <div class="form-group">
-        <label>总设计流量 Q（m³/h）</label>
-        <input type="number" id="inp-Q" min="0.01" step="1" placeholder="例：360" value="7500">
-        <span class="hint">泵站需排除的总设计流量</span>
+        <label>水泵最高总排水量 Q_total（m³/s）</label>
+        <input type="number" id="inp-Q-total" min="0.1" step="0.1" value="3.0">
+        <span class="hint">总排水量（多泵合计），直除N得单泵流量</span>
       </div>
       <div class="form-group">
-        <label>工作水泵台数 N（台）</label>
-        <input type="number" id="inp-N" min="1" max="8" step="1" placeholder="例：2" value="2">
-        <span class="hint">不含备用泵，建议 2～6 台</span>
+        <label>设计水缸容量 V_design（m³）</label>
+        <input type="number" id="inp-V-design" min="100" step="100" value="75000">
+        <span class="hint">调蓄池有效容积</span>
       </div>
       <div class="form-group">
-        <label>集水池占地面积 S（m²）</label>
-        <input type="number" id="inp-S" min="0.1" step="0.1" placeholder="例：4" value="500">
-        <span class="hint">集水池平面净面积</span>
+        <label>设计水缸深度 D（m）</label>
+        <input type="number" id="inp-D" step="0.1" value="16.0">
+        <span class="hint">Z_top = Z_bottom + D</span>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>池底标高 Z_bottom（mPD）</label>
+        <input type="number" id="inp-z-bottom" step="0.1" value="-13.0">
+        <span class="hint">集水池底部标高</span>
+      </div>
+      <div class="form-group">
+        <label>主出水管标高 Z_discharge（mPD）</label>
+        <input type="number" id="inp-z-discharge" step="0.1" value="3.0">
+        <span class="hint">主出水管高度，通常与Z_top相近</span>
       </div>
     </div>
 
-    <details>
-      <summary>高级参数（可选）</summary>
-      <div class="form-grid adv-grid">
-        <div class="form-group">
-          <label>备用泵台数 N_spare（台）</label>
-          <input type="number" id="inp-N-spare" min="0" max="3" step="1" value="0" placeholder="默认：0">
-          <span class="hint">0 = 无备用泵；通常设 1 台</span>
-        </div>
-        <div class="form-group">
-          <label>电机功率覆盖值（kW）</label>
-          <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG1-1 计算">
-          <span class="hint">留空则使用 AG1-1 计算值；填入则强制覆盖（影响泵间距 R-LA-03）</span>
-        </div>
-        <div class="form-group">
-          <label>出水口超高 h_outlet（m）</label>
-          <input type="number" id="inp-h-outlet" min="0" step="0.1" placeholder="默认：1.0">
-          <span class="hint">地面（集水池顶）到出水排放点高差</span>
-        </div>
-        <div class="form-group">
-          <label>出水管总长（m）</label>
-          <input type="number" id="inp-pipe-len" min="1" step="1" placeholder="默认：50">
-          <span class="hint">用于估算管路摩擦损失</span>
-        </div>
-      </div>
-    </details>
-
+    <!-- 设备拓扑配置（始终可见） -->
     <details id="topology-details" open>
       <summary>设备拓扑配置</summary>
       <div id="topology-editor-wrap"></div>
-    <!-- ══ AG4-1 建筑平面参数 ══ -->
-    <details id="ag41-params-wrap">
-      <summary>AG4-1 建筑平面参数</summary>
-
-      <div class="ag41-params-body">
-
-        <!-- Building overall dimensions -->
-        <div class="ag41-section-title">建筑总尺寸
-          <span class="ag41-hint">整体长宽由用户指定，以下为初始参考值</span>
-        </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>建筑宽度 BW（mm）</label>
-            <input type="number" id="inp-bw" min="10000" max="40000" step="100" value="18600">
-            <span class="hint">东西向外包净尺寸，初始值 18600 mm</span>
-          </div>
-          <div class="form-group">
-            <label>建筑进深 BD（mm）</label>
-            <input type="number" id="inp-bd" min="10000" max="50000" step="100" value="24000">
-            <span class="hint">南北向外包净尺寸，初始值 24000 mm</span>
-          </div>
-        </div>
-
-        <!-- Room target areas -->
-        <div class="ag41-section-title" style="margin-top:14px">各功能空间目标面积
-          <span class="ag41-hint">允许用户自行修改；留空则使用默认比例算法</span>
-        </div>
-
-        <table class="ag41-area-table">
-          <thead>
-            <tr>
-              <th>楼层</th>
-              <th>功能空间</th>
-              <th>目标面积（m²）</th>
-              <th>说明 / 初始参考值</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td rowspan="5" class="ag41-floor-cell">地面层</td>
-              <td>中电变压器房（×2）</td>
-              <td><input type="number" id="ra-trafo" class="ra-input" min="20" step="1" placeholder="≈ 69"></td>
-              <td class="ag41-note">每间约 68.8 m²；由变压器型号确定，变更须验证</td>
-            </tr>
-            <tr>
-              <td>服务用房（总水表＋水表＋消防）</td>
-              <td><input type="number" id="ra-svc" class="ra-input" min="10" step="1" placeholder="≈ 26"></td>
-              <td class="ag41-note">三间合计约 25.8 m²；由规范最小尺寸确定</td>
-            </tr>
-            <tr>
-              <td>水泵维修区域 <span class="ag41-tag inherited">继承自 AG1-2</span></td>
-              <td><input type="number" id="ra-repair" class="ra-input" min="10" step="1" placeholder="≈ 34">
-              </td>
-              <td class="ag41-note" id="ra-repair-note">
-                初始值约 34 m²；<strong>建议参考 AG1-2 维护间净长 L × 净宽 W</strong>，计算完成后自动填入
-              </td>
-            </tr>
-            <tr>
-              <td>停车区域 <span class="ag41-tag">独立生长</span></td>
-              <td><input type="number" id="ra-parking" class="ra-input" min="20" step="1" placeholder="≈ 172"></td>
-              <td class="ag41-note">默认约 172 m²（10 m 跨 × 17.2 m）；典型停车位 5.5 m × 2.5 m ≈ 14 m²/辆</td>
-            </tr>
-            <tr>
-              <td>送货口 1（地坑）</td>
-              <td><input type="number" id="ra-dock1" class="ra-input" min="4" step="1" placeholder="≈ 9" disabled></td>
-              <td class="ag41-note">固定 3 m × 3 m = 9 m²；不可调整</td>
-            </tr>
-            <tr>
-              <td rowspan="5" class="ag41-floor-cell">一层</td>
-              <td>风机房</td>
-              <td><input type="number" id="ra-fan" class="ra-input" min="50" step="1" placeholder="≈ 160"></td>
-              <td class="ag41-note">约 160 m²；由 5t 吊车覆盖范围决定，调整须重新验证</td>
-            </tr>
-            <tr>
-              <td>清洁泵房及水箱房</td>
-              <td><input type="number" id="ra-cp" class="ra-input" min="10" step="1" placeholder="≈ 40"></td>
-              <td class="ag41-note">初始值约 39.7 m²</td>
-            </tr>
-            <tr>
-              <td>雨水回收及灌溉设备房</td>
-              <td><input type="number" id="ra-rw" class="ra-input" min="10" step="1" placeholder="≈ 57"></td>
-              <td class="ag41-note">初始值约 56.7 m²；面积由建筑宽度和配电室宽度剩余确定</td>
-            </tr>
-            <tr>
-              <td>低压配电及 PLC 控制室</td>
-              <td><input type="number" id="ra-lv" class="ra-input" min="50" step="1" placeholder="≈ 140"></td>
-              <td class="ag41-note">初始值约 140 m²；宽度在 7.5–9.0 m 之间随机</td>
-            </tr>
-            <tr>
-              <td>一层主走廊</td>
-              <td><input type="number" id="ra-corr" class="ra-input" min="8" step="1" placeholder="≈ 20" disabled></td>
-              <td class="ag41-note">最小净宽 1.6 m，长度由楼层决定；不可单独指定面积</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <p class="ag41-gen-note">
-          生成方案：<strong>9 个</strong>（用户指定尺寸）
-        </p>
-
-      </div>
     </details>
+
+    <!-- 高级参数（标签页式） -->
+    <details>
+      <summary>高级参数</summary>
+
+      <!-- 标签页导航 -->
+      <div class="tab-bar" role="tablist">
+        <button class="tab-btn active" data-tab="tab-pool"     role="tab" aria-selected="true">水池参数</button>
+        <button class="tab-btn"        data-tab="tab-rain"    role="tab" aria-selected="false">暴雨与径流参数</button>
+        <button class="tab-btn"        data-tab="tab-pump"    role="tab" aria-selected="false">水泵与管道参数</button>
+        <button class="tab-btn"        data-tab="tab-layout"  role="tab" aria-selected="false">建筑平面参数</button>
+      </div>
+
+      <!-- Tab 1: 水池参数 -->
+      <div class="tab-panel active" id="tab-pool" role="tabpanel">
+        <div class="form-grid adv-grid">
+          <div class="form-group">
+            <label>工作泵台数 N（台）</label>
+            <input type="number" id="inp-N" min="1" max="6" step="1" value="2">
+            <span class="hint">不含备用泵，建议 2～6 台</span>
+          </div>
+          <div class="form-group">
+            <label>备用泵台数 N_spare（台）</label>
+            <input type="number" id="inp-N-spare" min="0" max="3" step="1" value="0">
+            <span class="hint">0 = 无备用泵；无备用时工作泵应 ≥ 2 台</span>
+          </div>
+          <div class="form-group">
+            <label>每小时允许启动次数 Z（次/小时）</label>
+            <input type="number" id="inp-Z" min="4" max="12" step="1" value="8">
+            <span class="hint">泵参数限制，影响最小容积校验</span>
+          </div>
+          <div class="form-group">
+            <label>超高 F_b（m）</label>
+            <input type="number" id="inp-Fb" step="0.1" value="1.3">
+            <span class="hint">最高水位距池顶的距离</span>
+          </div>
+          <div class="form-group">
+            <label>安全余量 F_s（m）</label>
+            <input type="number" id="inp-Fs" step="0.1" value="0.5">
+            <span class="hint">高于启泵水位的安全超高</span>
+          </div>
+          <div class="form-group">
+            <label>电机功率覆盖值（kW）</label>
+            <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG2-1 计算">
+            <span class="hint">留空则使用 AG2-1 计算值；填入则强制覆盖（影响泵间距）</span>
+          </div>
+          <div class="form-group">
+            <label>出水管总长 L（m）</label>
+            <input type="number" id="inp-pipe-len" min="1" step="1" value="50">
+            <span class="hint">用于估算管路摩擦损失</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: 暴雨与径流参数 -->
+      <div class="tab-panel" id="tab-rain" role="tabpanel" hidden>
+        <div class="form-grid adv-grid">
+          <div class="form-group">
+            <label>暴雨分区</label>
+            <select id="inp-zone">
+              <option value="tungkl" selected>香港天文台总部</option>
+              <option value="tai-mo-shan">大帽山</option>
+              <option value="west-lantau">西部大屿山</option>
+              <option value="north">北区</option>
+            </select>
+            <span class="hint">用于查IDF常数表（手册第4.3节）</span>
+          </div>
+          <div class="form-group">
+            <label>设计重现期 T（年）</label>
+            <select id="inp-T">
+              <option value="10" selected>10年（值班泵）</option>
+              <option value="50">50年（最大容量校核）</option>
+              <option value="200">200年（洪水检验）</option>
+            </select>
+            <span class="hint">值班泵按10年一遇设计（手册第14.6.2节）</span>
+          </div>
+          <div class="form-group">
+            <label>暴雨历时 t_d（min）</label>
+            <input type="number" id="inp-td" min="10" max="240" step="10" value="120">
+            <span class="hint">≤240min用IDF公式；>240min用DDF表</span>
+          </div>
+          <div class="form-group">
+            <label>集水区面积 A（km²）</label>
+            <input type="number" id="inp-A" min="0.01" step="0.1" value="1.0">
+            <span class="hint">汇水面积，用于径流估算</span>
+          </div>
+          <div class="form-group">
+            <label>径流系数 C</label>
+            <input type="number" id="inp-C" min="0.05" max="1.0" step="0.05" value="0.90">
+            <span class="hint">城市地区典型值0.85-0.95</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: 水泵与管道参数 -->
+      <div class="tab-panel" id="tab-pump" role="tabpanel" hidden>
+        <div class="form-grid adv-grid">
+          <div class="form-group">
+            <label>水力效率 η_hyd</label>
+            <input type="number" id="inp-eta-hyd" min="0.5" max="1.0" step="0.01" value="0.82">
+            <span class="hint">手册要求≥0.82</span>
+          </div>
+          <div class="form-group">
+            <label>电机效率 η_mot</label>
+            <input type="number" id="inp-eta-mot" min="0.5" max="1.0" step="0.01" value="0.93">
+            <span class="hint">手册要求≥0.93</span>
+          </div>
+          <div class="form-group">
+            <label>曼宁粗糙系数 n</label>
+            <input type="number" id="inp-n" min="0.010" max="0.020" step="0.001" value="0.013">
+            <span class="hint">混凝土管典型值0.013-0.015</span>
+          </div>
+          <div class="form-group">
+            <label>必需汽蚀余量 NPSH_r（m）</label>
+            <input type="number" id="inp-npsh-r" min="0" step="0.1" value="3.0">
+            <span class="hint">大型轴流泵典型值3-5m</span>
+          </div>
+          <div class="form-group">
+            <label>进水管设计流速 v_in（m/s）</label>
+            <input type="number" id="inp-v-in" min="0.6" max="1.5" step="0.1" value="1.0">
+            <span class="hint">手册第8.3节，防汽蚀</span>
+          </div>
+          <div class="form-group">
+            <label>出水管设计流速 v_out（m/s）</label>
+            <input type="number" id="inp-v-out" min="1.0" max="2.5" step="0.1" value="1.5">
+            <span class="hint">经济流速</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: 建筑平面参数 -->
+      <div class="tab-panel" id="tab-layout" role="tabpanel" hidden>
+        <div class="ag41-params-body">
+          <div class="ag41-section-title">建筑总尺寸
+            <span class="ag41-hint">整体长宽由用户指定，以下为初始参考值</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>建筑宽度 BW（mm）</label>
+              <input type="number" id="inp-bw" min="10000" max="40000" step="100" value="18600">
+              <span class="hint">东西向外包净尺寸，初始值 18600 mm</span>
+            </div>
+            <div class="form-group">
+              <label>建筑进深 BD（mm）</label>
+              <input type="number" id="inp-bd" min="10000" max="50000" step="100" value="24000">
+              <span class="hint">南北向外包净尺寸，初始值 24000 mm</span>
+            </div>
+          </div>
+
+          <div class="ag41-section-title" style="margin-top:14px">各功能空间目标面积
+            <span class="ag41-hint">允许用户自行修改；留空则使用默认比例算法</span>
+          </div>
+
+          <table class="ag41-area-table">
+            <thead>
+              <tr>
+                <th>楼层</th>
+                <th>功能空间</th>
+                <th>目标面积（m²）</th>
+                <th>说明 / 初始参考值</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td rowspan="5" class="ag41-floor-cell">地面层</td>
+                <td>中电变压器房（×2）</td>
+                <td><input type="number" id="ra-trafo" class="ra-input" min="20" step="1" placeholder="≈ 69"></td>
+                <td class="ag41-note">每间约 68.8 m²；由变压器型号确定，变更须验证</td>
+              </tr>
+              <tr>
+                <td>服务用房（总水表＋水表＋消防）</td>
+                <td><input type="number" id="ra-svc" class="ra-input" min="10" step="1" placeholder="≈ 26"></td>
+                <td class="ag41-note">三间合计约 25.8 m²；由规范最小尺寸确定</td>
+              </tr>
+              <tr>
+                <td>水泵维修区域 <span class="ag41-tag inherited">继承自 AG1-2</span></td>
+                <td><input type="number" id="ra-repair" class="ra-input" min="10" step="1" placeholder="≈ 34"></td>
+                <td class="ag41-note" id="ra-repair-note">
+                  初始值约 34 m²；<strong>建议参考 AG1-2 维护间净长 L × 净宽 W</strong>，计算完成后自动填入
+                </td>
+              </tr>
+              <tr>
+                <td>停车区域 <span class="ag41-tag">独立生长</span></td>
+                <td><input type="number" id="ra-parking" class="ra-input" min="20" step="1" placeholder="≈ 172"></td>
+                <td class="ag41-note">默认约 172 m²（10 m 跨 × 17.2 m）；典型停车位 5.5 m × 2.5 m ≈ 14 m²/辆</td>
+              </tr>
+              <tr>
+                <td>送货口 1（地坑）</td>
+                <td><input type="number" id="ra-dock1" class="ra-input" min="4" step="1" placeholder="≈ 9" disabled></td>
+                <td class="ag41-note">固定 3 m × 3 m = 9 m²；不可调整</td>
+              </tr>
+              <tr>
+                <td rowspan="5" class="ag41-floor-cell">一层</td>
+                <td>风机房</td>
+                <td><input type="number" id="ra-fan" class="ra-input" min="50" step="1" placeholder="≈ 160"></td>
+                <td class="ag41-note">约 160 m²；由 5t 吊车覆盖范围决定，调整须重新验证</td>
+              </tr>
+              <tr>
+                <td>清洁泵房及水箱房</td>
+                <td><input type="number" id="ra-cp" class="ra-input" min="10" step="1" placeholder="≈ 40"></td>
+                <td class="ag41-note">初始值约 39.7 m²</td>
+              </tr>
+              <tr>
+                <td>雨水回收及灌溉设备房</td>
+                <td><input type="number" id="ra-rw" class="ra-input" min="10" step="1" placeholder="≈ 57"></td>
+                <td class="ag41-note">初始值约 56.7 m²；面积由建筑宽度和配电室宽度剩余确定</td>
+              </tr>
+              <tr>
+                <td>低压配电及 PLC 控制室</td>
+                <td><input type="number" id="ra-lv" class="ra-input" min="50" step="1" placeholder="≈ 140"></td>
+                <td class="ag41-note">初始值约 140 m²；宽度在 7.5–9.0 m 之间随机</td>
+              </tr>
+              <tr>
+                <td>一层主走廊</td>
+                <td><input type="number" id="ra-corr" class="ra-input" min="8" step="1" placeholder="≈ 20" disabled></td>
+                <td class="ag41-note">最小净宽 1.6 m，长度由楼层决定；不可单独指定面积</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="ag41-gen-note">
+            生成方案：<strong>9 个</strong>（用户指定尺寸）
+          </p>
+        </div>
+      </div>
+
+    </details><!-- end 高级参数 -->
 
     <button class="btn-calculate" id="btn-calc">开始计算</button>
   </section>
@@ -192,7 +307,7 @@
       <!-- AG1-1 -->
       <div class="agent-card card-ag11">
         <div class="card-header">
-          <span>AG1-1</span><span class="agent-label">单泵规格计算</span>
+          <span>AG1-1</span><span class="agent-label">调蓄池计算</span>
         </div>
         <div class="card-body" id="card-ag11"></div>
       </div>
@@ -208,9 +323,17 @@
       <!-- AG2-1 -->
       <div class="agent-card card-ag21">
         <div class="card-header">
-          <span>AG2-1</span><span class="agent-label">水池体积深度计算</span>
+          <span>AG2-1</span><span class="agent-label">水泵选型计算</span>
         </div>
         <div class="card-body" id="card-ag21"></div>
+      </div>
+
+      <!-- AG2-2 -->
+      <div class="agent-card card-ag22">
+        <div class="card-header">
+          <span>AG2-2</span><span class="agent-label">管道尺寸计算与水力校核</span>
+        </div>
+        <div class="card-body" id="card-ag22"></div>
       </div>
 
       <!-- AG3-1: pump-room drawing -->

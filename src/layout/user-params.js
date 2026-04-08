@@ -92,5 +92,5 @@ export async function getUserConfirmedParams() {
   console.log("对继承自上游模块的参数给出提示（此处未实现具体继承逻辑）。");
   console.log("等待用户确认或修改，锁定 L、W 及各房间目标面积。");
 
-  return { buildingW: Math.round(bW / 100) * 100, buildingD: Math.round(bD / 100) * 100, roomAreas };
+  return { buildingW: Math.round(bW / 100) * 100, buildingD: Math.round(bD / 100) * 100, roomTargetAreas: roomAreas };
 }

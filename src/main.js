@@ -2,14 +2,15 @@ import './style.css'
 
 import { runAG00 } from './agents/ag00-validate.js'
 import { runAG01 } from './agents/ag01-topology.js'
-import { runAG11 } from './agents/ag11-pump-spec.js'
+import { runAG11 } from './agents/ag11-pool-depth.js'
 import { runAG12 } from './agents/ag12-maintenance-room.js'
-import { runAG21 } from './agents/ag21-pool-depth.js'
+import { runAG21 } from './agents/ag21-pump-spec.js'
+import { runAG22 } from './agents/ag22-pipe-sizing.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21, renderAG22 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
@@ -43,26 +44,36 @@ function updateRepairZoneHint(ag12) {
 // ── Main calculation controller ───────────────────────────────────────
 
 async function runCalculation() {
-  const Q        = parseFloat(document.getElementById('inp-Q').value)
-  const N        = parseInt(document.getElementById('inp-N').value, 10)
-  const N_spare  = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
-  const S        = parseFloat(document.getElementById('inp-S').value)
-  const h_outlet = parseFloat(document.getElementById('inp-h-outlet').value)
-  const pipe_len = parseFloat(document.getElementById('inp-pipe-len').value)
-  const hOut     = isNaN(h_outlet) ? 1.0 : h_outlet
-  const pLen     = isNaN(pipe_len) ? 50  : pipe_len
+  // ── AG0-0: 参数解析与计算 ────────────────────────────────────
+  const ag00Params = {
+    // 直接输入模式参数
+    Q_total:    parseFloat(document.getElementById('inp-Q-total').value),
+    N:          parseInt(document.getElementById('inp-N').value, 10),
+    N_spare:    parseInt(document.getElementById('inp-N-spare').value, 10) || 0,
+    Z:          parseInt(document.getElementById('inp-Z').value, 10) || 8,
+    V_design:   parseFloat(document.getElementById('inp-V-design').value),
+    Z_bottom:   parseFloat(document.getElementById('inp-z-bottom').value),
+    D:          parseFloat(document.getElementById('inp-D').value),
+    Z_discharge: parseFloat(document.getElementById('inp-z-discharge').value),
+    // 暴雨分析模式参数（当Q_total为空时使用）
+    zone:       document.getElementById('inp-zone').value,
+    T:          parseInt(document.getElementById('inp-T').value, 10),
+    t_d:        parseFloat(document.getElementById('inp-td').value),
+    A:          parseFloat(document.getElementById('inp-A').value),
+    C:          parseFloat(document.getElementById('inp-C').value),
+  }
 
-  // AG0-0: validate
-  const ag00 = runAG00(Q, N, S)
+  const ag00 = runAG00(ag00Params)
   document.getElementById('card-ag00').innerHTML = renderAG00(ag00)
 
   const panel = document.getElementById('results-panel')
   panel.hidden = false
 
   // AG0-1: 若 N 或 N_spare 变化则重置默认拓扑
-  if (N !== _lastTopoN || N_spare !== _lastTopoSpare) {
-    setTopologyFromN(N, N_spare)
-    _lastTopoN     = N
+  const N_spare = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
+  if (ag00Params.N !== _lastTopoN || N_spare !== _lastTopoSpare) {
+    setTopologyFromN(ag00Params.N, N_spare)
+    _lastTopoN     = ag00Params.N
     _lastTopoSpare = N_spare
   }
 
@@ -71,7 +82,7 @@ async function runCalculation() {
   document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
-    ;['card-ag11', 'card-ag12', 'card-ag21'].forEach(id => {
+    ;['card-ag11', 'card-ag12', 'card-ag21', 'card-ag22'].forEach(id => {
       document.getElementById(id).innerHTML =
         '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>'
     })
@@ -80,31 +91,82 @@ async function runCalculation() {
     return
   }
 
-  // AG2-1: pool depth (provides h_pool for AG1-1 head calculation)
-  const ag21 = runAG21(Q / N, N, S)
-  document.getElementById('card-ag21').innerHTML = renderAG21(ag21)
+  // ── AG1-1: 调蓄池计算 ─────────────────────────────────────────────
+  const ag1Params = {
+    V_design: ag00.V_design,
+    Z_bottom: ag00.Z_bottom,
+    D:        ag00.D,
+    N:        ag00.N,
+    Z:        ag00.Z,
+    Q_pump:   ag00.Q_pump,  // 单泵设计流量（m³/s）
+    F_b:      parseFloat(document.getElementById('inp-Fb').value) || 0.8,
+    F_s:      parseFloat(document.getElementById('inp-Fs').value) || 1.0,
+  }
+  const ag1Result = runAG11(ag1Params)  // ag11-pool-depth.js = AG1-1 调蓄池计算
+  document.getElementById('card-ag11').innerHTML = renderAG11(ag1Result)
 
-  // AG1-1: single pump spec
-  const ag11 = runAG11(Q, N, ag21.h_pool, hOut, pLen)
-  document.getElementById('card-ag11').innerHTML = renderAG11(ag11)
+  // ── AG2-1: 水泵选型计算 ───────────────────────────────────────────
+  const ag2Params = {
+    Q_single:    ag00.Q_single,
+    Z_stop:      ag1Result.Z_stop,
+    Z_discharge: ag00.Z_discharge,
+    L:           parseFloat(document.getElementById('inp-pipe-len').value) || 50,
+    n:           parseFloat(document.getElementById('inp-n').value) || 0.013,
+    η_hyd:       parseFloat(document.getElementById('inp-eta-hyd').value) || 0.82,
+    η_mot:       parseFloat(document.getElementById('inp-eta-mot').value) || 0.93,
+    NPSH_r:      parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
+  }
+  const motorOverride = parseFloat(document.getElementById('inp-motor').value)
+  const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
+  document.getElementById('card-ag21').innerHTML = renderAG21(ag2Result)
 
-  // AG1-2: maintenance room dimensions
-  const motorOverride  = parseFloat(document.getElementById('inp-motor').value)
-  const effectiveMotor = isNaN(motorOverride) ? ag11.P_motor : motorOverride
-  const ag12 = runAG12(N, effectiveMotor, N_spare)
-  ag12.DN_label = ag11.DN_outlet
+  // ── AG2-2: 管道尺寸计算与水力校核 ─────────────────────────────────
+  if (ag2Result.valid !== false) {
+    // 总流量Q：在直接输入模式下使用Q_total×3600，否则使用ag00.Q
+    const totalFlow = ag00.mode === 'direct'
+      ? (ag00.Q_total * 3600)
+      : (ag00.Q || ag00.Q_total * 3600)
+
+    const ag22Params = {
+      Q_pump:    ag2Result.Q_pump,        // 单泵设计流量（m³/s）
+      Q:         totalFlow,                // 泵站总流量（m³/h）
+      N:         ag00.N,                  // 工作泵台数
+      H_total:   ag2Result.H_total,       // 总扬程（m）
+      Z_stop:    ag1Result.Z_stop,        // 停泵水位（mPD）
+      H_s:       ag2Result.H_s,           // 淹没深度（m），来自AG2-1
+      v_in:      parseFloat(document.getElementById('inp-v-in').value) || 1.0,
+      v_out:     parseFloat(document.getElementById('inp-v-out').value) || 1.5,
+      n:         parseFloat(document.getElementById('inp-n').value) || 0.013,
+      k_local:   0.15,                   // 局部损失系数，工程惯例
+      NPSH_r:    parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
+      L:         parseFloat(document.getElementById('inp-pipe-len').value) || 50,
+    }
+    const ag22Result = runAG22(ag22Params)
+    document.getElementById('card-ag22').innerHTML = renderAG22(ag22Result)
+  }
+
+  // ── AG1-2: 维护间尺寸 ─────────────────────────────────────────────
+  const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
+  const ag12 = runAG12(ag00.N, effectiveMotor, N_spare)
+  ag12.DN_label = ag2Result.DN_outlet
   document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
 
-  // AG3-1: pump-room SVG (plan + section)，从 ag01 取拓扑（单向数据流）
-  runAG31(N, ag12, ag21, S, ag01.topology)
+  // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
+  // AG3-1 期望从第三个参数解构 h_active, Z_stop, Z_start1, Z_alarm_high
+  // 这些全部来自 AG1-1（调蓄池计算），其中 h_active = Z_max - Z_stop
+  const ag31Params = {
+    h_active:   ag1Result.Z_max - ag1Result.Z_stop,  // 有效水深
+    Z_stop:     ag1Result.Z_stop,
+    Z_start1:   ag1Result.Z_start1,
+    Z_alarm_high: ag1Result.Z_alarm_high,
+  }
+  runAG31(ag00.N, ag12, ag31Params, ag1Result.S, ag01.topology)
 
   // Update repair_zone hint from AG1-2 before reading AG4-1 params
   updateRepairZoneHint(ag12)
 
-  // AG4-1: building layout generation with user parameters
+  // ── AG4-1/AG4-2: 布局生成与评分 ─────────────────────────────────
   const ag41Variants = await runAG41()
-
-  // AG4-2: evaluation & scoring
   const ag42Variants = runAG42(ag41Variants)
   renderLayoutPanel(ag42Variants)
 
@@ -114,7 +176,7 @@ async function runCalculation() {
 // ── Event wiring ──────────────────────────────────────────────────────
 
 // ── 初始化 AG0-1 拓扑编辑器 ──────────────────────────────────────────
-const _initN = parseInt(document.getElementById('inp-N').value, 10) || 3
+const _initN = parseInt(document.getElementById('inp-N').value, 10) || 2
 initTopologyEditor('topology-editor-wrap', () => {})
 setTopologyFromN(_initN)
 _lastTopoN = _initN
@@ -122,7 +184,7 @@ _lastTopoN = _initN
 function _updateTopo() {
   const N       = parseInt(document.getElementById('inp-N').value, 10)
   const N_spare = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
-  if (N >= 1 && N <= 10 && (N !== _lastTopoN || N_spare !== _lastTopoSpare)) {
+  if (N >= 1 && N <= 6 && (N !== _lastTopoN || N_spare !== _lastTopoSpare)) {
     setTopologyFromN(N, N_spare)
     _lastTopoN     = N
     _lastTopoSpare = N_spare
@@ -136,4 +198,23 @@ document.getElementById('btn-calc').addEventListener('click', runCalculation)
 
 document.querySelectorAll('.input-panel input').forEach(el => {
   el.addEventListener('keydown', e => { if (e.key === 'Enter') runCalculation() })
+})
+
+// ── 高级参数标签页切换 ─────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const panelId = btn.dataset.tab
+
+    // deactivate all tabs
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active')
+      b.setAttribute('aria-selected', 'false')
+    })
+    document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = true })
+
+    // activate selected
+    btn.classList.add('active')
+    btn.setAttribute('aria-selected', 'true')
+    document.getElementById(panelId).hidden = false
+  })
 })
