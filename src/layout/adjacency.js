@@ -17,7 +17,6 @@ export const ADJACENCY_SHOULD = [
   { pair: ['lv_control', 'corridor_l1'], reason: '控制室通过内走廊进入' },
   { pair: ['clean_pump', 'corridor_l1'], reason: '清洁泵房经走廊联系' },
   { pair: ['rainwater',  'corridor_l1'], reason: '雨水房经走廊联系' },
-  { pair: ['parking',    'repair_zone'], reason: '临近，便于设备转运' },
 ]
 
 /**

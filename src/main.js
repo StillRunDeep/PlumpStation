@@ -13,6 +13,40 @@ import { renderLayoutPanel } from './ui/layout-panel.js'
 
 // ── AG4-1 parameter helpers ───────────────────────────────────────────
 
+/**
+ * Read optional numeric input. Returns null if empty or invalid.
+ */
+function readOptional(id) {
+  const v = parseFloat(document.getElementById(id)?.value)
+  return isNaN(v) || v <= 0 ? null : v
+}
+
+/**
+ * Collect AG4-1 user parameters from the input panel.
+ * All room areas are in m²; dimensions in mm.
+ */
+function readAG41Params(ag12) {
+  const bW = parseFloat(document.getElementById('inp-bw')?.value) || 18600
+  const bD = parseFloat(document.getElementById('inp-bd')?.value) || 24000
+
+  const roomAreas = {}
+
+  const raRepair  = readOptional('ra-repair')
+  const raParking = readOptional('ra-parking')
+  const raLv      = readOptional('ra-lv')
+  const raCp      = readOptional('ra-cp')
+  const raFan     = readOptional('ra-fan')
+  const raRw      = readOptional('ra-rw')
+
+  if (raRepair  !== null) roomAreas.repair_zone = raRepair
+  if (raParking !== null) roomAreas.parking     = raParking
+  if (raLv      !== null) roomAreas.lv_control  = raLv
+  if (raCp      !== null) roomAreas.clean_pump  = raCp
+  if (raFan     !== null) roomAreas.fan_room    = raFan
+  if (raRw      !== null) roomAreas.rainwater   = raRw
+
+  return { buildingW: Math.round(bW / 100) * 100, buildingD: Math.round(bD / 100) * 100, roomAreas }
+}
 
 /**
  * Auto-fill the repair_zone area hint from AG1-2 output.
@@ -37,7 +71,7 @@ function updateRepairZoneHint(ag12) {
 
 // ── Main calculation controller ───────────────────────────────────────
 
-async function runCalculation() {
+function runCalculation() {
   const Q        = parseFloat(document.getElementById('inp-Q').value)
   const N        = parseInt(document.getElementById('inp-N').value, 10)
   const S        = parseFloat(document.getElementById('inp-S').value)
@@ -85,7 +119,8 @@ async function runCalculation() {
   updateRepairZoneHint(ag12)
 
   // AG4-1: building layout generation with user parameters
-  const ag41Variants = await runAG41()
+  const ag41Params   = readAG41Params(ag12)
+  const ag41Variants = runAG41(ag41Params)
 
   // AG4-2: evaluation & scoring
   const ag42Variants = runAG42(ag41Variants)
