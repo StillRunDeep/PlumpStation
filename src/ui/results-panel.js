@@ -103,8 +103,9 @@ export function renderAG11(r) {
     ${r.valid !== false ? `<details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>` : ''}
     ${r.valid !== false ? `
     <div class="result-summary pass">
-      ${kvRow('所需调蓄容积 V_required', fmt(r.V_required, 1) + ' m³')}
-      ${kvRow('有效调蓄深度 h_active', fmt(r.h_active, 2) + ' m')}
+      ${kvRow('最小调节容积 V_min', fmt(r.V_min, 1) + ' m³')}
+      ${kvRow('有效调蓄容积 V_effective', fmt(r.V_effective, 1) + ' m³')}
+      ${kvRow('推算面积 S', fmt(r.S, 1) + ' m²')}
       ${kvRow('总池深 D', fmt(r.D, 1) + ' m')}
       ${kvRow('最高水位 Z_max', fmt(r.Z_max, 2) + ' mPD')}
     </div>

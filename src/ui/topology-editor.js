@@ -25,13 +25,13 @@ const VW = 800, VH = 400
 
 // ── 节点尺寸 ─────────────────────────────────────────────────────────
 const NODE_SHAPES = {
-  pump:       { w: 36, h: 24 },
-  check_valve:{ r: 10 },        // 菱形半径
-  gate_valve: { s: 13 },        // 正方形边长
-  source:     { r: 14 },        // 圆
-  discharge:  { r: 14 },
-  junction:   { r: 6  },        // 汇流点小圆
-  flowmeter:  { r: 14 },        // 电磁流量计圆
+  pump:       { w: 52, h: 34 },
+  check_valve:{ r: 14 },        // 菱形半径
+  gate_valve: { s: 18 },        // 正方形边长
+  source:     { r: 18 },        // 圆
+  discharge:  { r: 18 },
+  junction:   { r: 10 },        // 汇流点小圆
+  flowmeter:  { r: 18 },        // 电磁流量计圆
 }
 
 function nodeCenter(node) {
@@ -399,8 +399,8 @@ function _makeRoom(room) {
   })
   const label = _makeSvgEl('text', {
     x: room.editorX + 8,
-    y: room.editorY + 18,
-    'font-size': 12,
+    y: room.editorY + 20,
+    'font-size': 14,
     fill: isWetWell ? '#2471a3' : '#2c3e50',
     'font-weight': 'bold',
     'pointer-events': 'none',
@@ -437,7 +437,7 @@ function _makeNode(node) {
         'stroke-dasharray': '3,2', rx: 5,
       }))
     }
-    g.appendChild(_makeLabel(node.editorX, node.editorY + 4, node.label, '#fff', 10))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + 5, node.label, '#fff', 12))
   }
 
   else if (node.type === 'check_valve') {
@@ -447,7 +447,7 @@ function _makeNode(node) {
       points: pts, fill: '#e74c3c', stroke: '#c0392b',
       'stroke-width': isSel ? 2.5 : 1,
     }))
-    g.appendChild(_makeLabel(node.editorX, node.editorY + r + 11, node.label, '#555', 9))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + r + 13, node.label, '#555', 11))
   }
 
   else if (node.type === 'gate_valve') {
@@ -458,7 +458,7 @@ function _makeNode(node) {
       fill: '#e74c3c', stroke: '#c0392b',
       'stroke-width': isSel ? 2.5 : 1,
     }))
-    g.appendChild(_makeLabel(node.editorX, node.editorY + s / 2 + 11, node.label, '#555', 9))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + s / 2 + 13, node.label, '#555', 11))
   }
 
   else if (node.type === 'junction') {
@@ -476,8 +476,8 @@ function _makeNode(node) {
       fill: '#8e44ad', stroke: '#6c3483',
       'stroke-width': isSel ? 2.5 : 1.5,
     }))
-    g.appendChild(_makeLabel(node.editorX, node.editorY + 4, 'FM', '#fff', 9))
-    g.appendChild(_makeLabel(node.editorX, node.editorY + r + 11, node.label, '#555', 9))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + 5, 'FM', '#fff', 11))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + r + 13, node.label, '#555', 11))
   }
 
   else if (node.type === 'source' || node.type === 'discharge') {
@@ -486,7 +486,7 @@ function _makeNode(node) {
       cx: node.editorX, cy: node.editorY, r,
       fill: '#117a65', stroke: '#0e6655', 'stroke-width': 1.5,
     }))
-    g.appendChild(_makeLabel(node.editorX, node.editorY + 4, node.label, '#fff', 9))
+    g.appendChild(_makeLabel(node.editorX, node.editorY + 5, node.label, '#fff', 11))
   }
 
   return g

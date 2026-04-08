@@ -98,7 +98,7 @@ export function validateAG22Params(params) {
  * @param {number} params.N - 工作泵台数
  * @param {number} params.H_total - 总扬程（m），来自AG2-1
  * @param {number} params.Z_stop - 停泵水位（mPD），用于NPSH计算
- * @param {number} params.Z_sump - 集水坑底标高（mPD），用于NPSH计算
+ * @param {number} params.H_s - 淹没深度（m），主泵进口以上水柱高度，取固定值2.0m
  * @param {number} [params.v_in=1.0] - 泵进水管设计流速（m/s）
  * @param {number} [params.v_out=1.5] - 泵出水管设计流速（m/s）
  * @param {number} [params.n=0.013] - 曼宁粗糙系数
@@ -113,7 +113,7 @@ export function runAG22({
   N,           // 工作泵台数
   H_total,     // 总扬程（m）
   Z_stop,      // 停泵水位（mPD）
-  Z_sump,      // 集水坑底标高（mPD）
+  H_s = 2.0,   // 淹没深度（m），主泵进口以上水柱高度
   v_in = 1.0,   // 泵进水管设计流速（m/s），默认值依据手册第8.3节
   v_out = 1.5,  // 泵出水管设计流速（m/s），默认值依据经济流速
   n = 0.013,   // 曼宁粗糙系数（混凝土管），默认值依据手册第8.3节
@@ -214,12 +214,12 @@ export function runAG22({
   // 6.8 NPSH 校验
   // NPSH_a = (P_atm - P_v) / (ρg) + H_s - H_suction_loss
   // 简化：NPSH_a = 10.33 - 0.5 + H_s - 0.2
-  const H_s = Math.abs(Z_stop - Z_sump)  // 淹没深度
+  // H_s 由调用方传入（AG2-1 已计算为固定值2.0m），不再依赖 Z_sump
   const NPSH_a = 10.33 - 0.5 + H_s - 0.2
   const NPSH_ok = NPSH_a >= NPSH_r + 0.5
 
   rows.push(stepRow('═══════════ NPSH校验 ═══════════', '', '', ''))
-  rows.push(stepRow('淹没深度 H_s', `|Z_stop - Z_sump| = |${fmt(Z_stop)} - ${fmt(Z_sump)}| =`, fmt(H_s, 2), 'm'))
+  rows.push(stepRow('淹没深度 H_s', '固定值（大型轴流泵典型要求）', fmt(H_s, 2), 'm'))
   rows.push(stepRow('必需汽蚀余量 NPSH_r', '设备参数/工程惯例', NPSH_r, 'm'))
   rows.push(stepRow('有效汽蚀余量 NPSH_a', `10.33-0.5+H_s-0.2 =`, fmt(NPSH_a, 2), 'm', '手册第14.2.3节'))
   rows.push(stepRow('NPSH安全余量', 'NPSH_a ≥ NPSH_r + 0.5', NPSH_ok ? '✓ 满足' : '✗ 不满足', '', '手册第14.2.3节'))

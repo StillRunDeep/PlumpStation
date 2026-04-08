@@ -243,7 +243,7 @@ export function runAG21({
 
   // ── NPSH 校验 ─────────────────────────────────────────────
 
-  const H_s = Math.abs(Z_stop - (Z_stop - 2.5))  // 淹没深度（简化假设）
+  const H_s = 2.0  // 典型淹没深度（m），大型轴流泵通常需要≥2m
   const NPSH_a = 10.33 - 0.5 + H_s - 0.2  // 简化计算
   const NPSH_ok = NPSH_a >= NPSH_r + 0.5
 
@@ -269,7 +269,7 @@ export function runAG21({
     η_hyd, η_mot, η_combined, P_shaft, K, P_motor,
     // 校验
     v_in_actual, v_out_actual, v_in_ok, v_out_ok,
-    NPSH_r, NPSH_a, NPSH_ok,
+    NPSH_r, NPSH_a, NPSH_ok, H_s,
     // 设计参数（带依据标注）
     designParams: {
       L:           { value: L,           unit: 'm',     ref: '工程惯例' },
