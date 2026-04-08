@@ -95,21 +95,6 @@ export function renderAG11(r) {
     </table>
   `
 
-  const diagram = `
-    <div class="wl-diagram">
-      <div>
-        <p style="font-size:11px;font-weight:600;color:#555;margin-bottom:6px">水位示意（mPD）</p>
-        <div class="wl-labels">
-          <div class="wl-tick"><div class="dot dot-pool"></div><span>池顶 Z_top = ${fmt(r.D + r.Z_bottom - r.h_active, 1)} mPD</span></div>
-          <div class="wl-tick"><div class="dot dot-alarm"></div><span>高报警 Z_alarm_high = ${fmt(r.Z_alarm_high, 2)} mPD</span></div>
-          <div class="wl-tick"><div class="dot dot-start"></div><span>2#泵 Z_start2 = ${fmt(r.Z_start2, 2)} mPD</span></div>
-          <div class="wl-tick"><div class="dot dot-start"></div><span>1#泵 Z_start1 = ${fmt(r.Z_start1, 2)} mPD</span></div>
-          <div class="wl-tick"><div class="dot dot-stop"></div><span>停泵 Z_stop = ${fmt(r.Z_stop, 2)} mPD</span></div>
-        </div>
-      </div>
-    </div>
-  `
-
   return `
     <div style="margin-bottom:12px">
       <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
@@ -124,7 +109,6 @@ export function renderAG11(r) {
       ${kvRow('最高水位 Z_max', fmt(r.Z_max, 2) + ' mPD')}
     </div>
     ${staggerTable}
-    ${diagram}
     ` : ''}
   `
 }
@@ -179,6 +163,44 @@ export function renderAG21(r) {
     </div>
     <div class="result-summary ${effClass}" style="margin-top:8px;font-size:12px">
       <strong>NPSH校验（R-NPSH-01）：</strong>${effMsg}
+    </div>
+    ` : ''}
+  `
+}
+
+// AG2-2：管道尺寸计算与水力校核
+export function renderAG22(r) {
+  const hasErrors = r.errors && r.errors.length > 0
+  const hasWarnings = r.warnings && r.warnings.length > 0
+  const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
+  const icon = status === 'pass' ? '✔' : status === 'warn' ? '⚠' : '✘'
+  const label = status === 'pass' ? '计算完成' : status === 'warn' ? '完成（有警告）' : '计算失败'
+
+  let msgs = ''
+  if (hasErrors) {
+    r.errors.forEach(e => { msgs += `<li><span class="icon err">✘</span> <span class="err">${e}</span></li>` })
+  }
+  if (hasWarnings) {
+    r.warnings.forEach(w => { msgs += `<li><span class="icon wrn">⚠</span> <span class="wrn">${w}</span></li>` })
+  }
+
+  return `
+    <div style="margin-bottom:12px">
+      <span style="font-weight:700;color:var(--color-${status})">${icon} ${label}</span>
+    </div>
+    ${msgs ? `<ul class="msg-list">${msgs}</ul>` : ''}
+    ${r.valid !== false ? `<details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>` : ''}
+    ${r.valid !== false ? `
+    <div class="result-summary pass">
+      ${kvRow('泵进水管公称直径 DN_pumpIn', 'DN ' + r.DN_pumpIn)}
+      ${kvRow('泵出水管公称直径 DN_pumpOut', 'DN ' + r.DN_pumpOut)}
+      ${kvRow('总出水管公称直径 DN_mainOutlet', 'DN ' + r.DN_mainOutlet)}
+      ${kvRow('沿程损失 H_f', fmt(r.H_f, 3) + ' m')}
+      ${kvRow('局部损失 H_local', fmt(r.H_local, 3) + ' m')}
+      ${kvRow('总水头损失 H_loss', fmt(r.H_loss, 3) + ' m')}
+    </div>
+    <div class="result-summary ${r.NPSH_ok ? 'pass' : 'fail'}" style="margin-top:8px;font-size:12px">
+      <strong>NPSH校验：</strong>${r.NPSH_ok ? '✓ 满足' : '✘ 不满足'}
     </div>
     ` : ''}
   `

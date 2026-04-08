@@ -5,11 +5,12 @@ import { runAG01 } from './agents/ag01-topology.js'
 import { runAG11 } from './agents/ag11-pool-depth.js'
 import { runAG12 } from './agents/ag12-maintenance-room.js'
 import { runAG21 } from './agents/ag21-pump-spec.js'
+import { runAG22 } from './agents/ag22-pipe-sizing.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21, renderAG22 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
@@ -75,7 +76,7 @@ async function runCalculation() {
   document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
-    ;['card-ag11', 'card-ag12', 'card-ag21'].forEach(id => {
+    ;['card-ag11', 'card-ag12', 'card-ag21', 'card-ag22'].forEach(id => {
       document.getElementById(id).innerHTML =
         '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>'
     })
@@ -111,6 +112,26 @@ async function runCalculation() {
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
   const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
   document.getElementById('card-ag21').innerHTML = renderAG21(ag2Result)
+
+  // ── AG2-2: 管道尺寸计算与水力校核 ─────────────────────────────────
+  if (ag2Result.valid !== false) {
+    const ag22Params = {
+      Q_pump:    ag2Result.Q_pump,        // 单泵设计流量（m³/s）
+      Q:         ag00Params.Q,             // 泵站总流量（m³/h）
+      N:         ag00Params.N,             // 工作泵台数
+      H_total:   ag2Result.H_total,        // 总扬程（m）
+      Z_stop:    ag1Result.Z_stop,         // 停泵水位（mPD）
+      Z_sump:    ag1Result.Z_sump,          // 集水坑底标高（mPD）
+      v_in:      parseFloat(document.getElementById('inp-v-in').value) || 1.0,
+      v_out:     parseFloat(document.getElementById('inp-v-out').value) || 1.5,
+      n:         parseFloat(document.getElementById('inp-n').value) || 0.013,
+      k_local:   0.15,                      // 局部损失系数，工程惯例
+      NPSH_r:    parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
+      L:         parseFloat(document.getElementById('inp-pipe-len').value) || 50,
+    }
+    const ag22Result = runAG22(ag22Params)
+    document.getElementById('card-ag22').innerHTML = renderAG22(ag22Result)
+  }
 
   // ── AG1-2: 维护间尺寸 ─────────────────────────────────────────────
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride

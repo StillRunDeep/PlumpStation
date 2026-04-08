@@ -139,6 +139,16 @@
           <input type="number" id="inp-npsh-r" min="0" step="0.1" value="3.0">
           <span class="hint">大型轴流泵典型值3-5m</span>
         </div>
+        <div class="form-group">
+          <label>进水管设计流速 v_in（m/s）</label>
+          <input type="number" id="inp-v-in" min="0.6" max="1.5" step="0.1" value="1.0">
+          <span class="hint">手册第8.3节，防汽蚀</span>
+        </div>
+        <div class="form-group">
+          <label>出水管设计流速 v_out（m/s）</label>
+          <input type="number" id="inp-v-out" min="1.0" max="2.5" step="0.1" value="1.5">
+          <span class="hint">经济流速</span>
+        </div>
       </div>
     </details>
 
@@ -293,6 +303,14 @@
           <span>AG2-1</span><span class="agent-label">水泵选型计算</span>
         </div>
         <div class="card-body" id="card-ag21"></div>
+      </div>
+
+      <!-- AG2-2 -->
+      <div class="agent-card card-ag22">
+        <div class="card-header">
+          <span>AG2-2</span><span class="agent-label">管道尺寸计算与水力校核</span>
+        </div>
+        <div class="card-body" id="card-ag22"></div>
       </div>
 
       <!-- AG3-1: pump-room drawing -->

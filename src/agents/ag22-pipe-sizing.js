@@ -21,8 +21,8 @@ import { selectDN, fmt, stepRow } from '../utils.js'
  *   N             工作泵台数，来自AG0-0
  *
  * 设计参数（带默认值，依据手册或工程惯例）：
- *   v_in          进水管设计流速（m/s），默认1.0，手册第8.3节
- *   v_out         出水管设计流速（m/s），默认1.5，经济流速
+ *   v_in          泵进水管设计流速（m/s），默认1.0，手册第8.3节
+ *   v_out         泵出水管设计流速（m/s），默认1.5，经济流速
  *   n             曼宁粗糙系数，默认0.013（混凝土管），手册第8.3节
  *   k_local       局部损失系数，默认0.15，沿程损失的15%
  *   NPSH_r        必需汽蚀余量（m），默认3.0，工程惯例
@@ -38,8 +38,8 @@ export const AG22_PARAM_LIMITS = {
   Q:           { min: 1,     max: 100000, unit: 'm³/h', label: '泵站总流量' },
   N:           { min: 1,     max: 6,     unit: '台',   label: '工作泵台数', integer: true },
   // 设计参数范围
-  v_in:        { min: 0.6,   max: 1.5,   unit: 'm/s',  label: '进水管设计流速', ref: '手册第8.3节' },
-  v_out:       { min: 1.0,   max: 2.5,   unit: 'm/s',  label: '出水管设计流速', ref: '经济流速' },
+  v_in:        { min: 0.6,   max: 1.5,   unit: 'm/s',  label: '泵进水管设计流速', ref: '手册第8.3节' },
+  v_out:       { min: 1.0,   max: 2.5,   unit: 'm/s',  label: '泵出水管设计流速', ref: '经济流速' },
   n:           { min: 0.010, max: 0.020, unit: 's/m^(1/3)', label: '曼宁粗糙系数', ref: '手册第8.3节' },
   k_local:     { min: 0.05,  max: 0.30,  unit: '',     label: '局部损失系数', ref: '工程惯例' },
   NPSH_r:      { min: 1.0,   max: 8.0,   unit: 'm',    label: '必需汽蚀余量', ref: '工程惯例' },
@@ -69,10 +69,10 @@ export function validateAG22Params(params) {
   }
 
   if (v_in !== undefined && (v_in < AG22_PARAM_LIMITS.v_in.min || v_in > AG22_PARAM_LIMITS.v_in.max))
-    errors.push(`进水管设计流速 v_in 应在 ${AG22_PARAM_LIMITS.v_in.min}-${AG22_PARAM_LIMITS.v_in.max} ${AG22_PARAM_LIMITS.v_in.unit} 范围内（${AG22_PARAM_LIMITS.v_in.ref}）`)
+    errors.push(`泵进水管设计流速 v_in 应在 ${AG22_PARAM_LIMITS.v_in.min}-${AG22_PARAM_LIMITS.v_in.max} ${AG22_PARAM_LIMITS.v_in.unit} 范围内（${AG22_PARAM_LIMITS.v_in.ref}）`)
 
   if (v_out !== undefined && (v_out < AG22_PARAM_LIMITS.v_out.min || v_out > AG22_PARAM_LIMITS.v_out.max))
-    errors.push(`出水管设计流速 v_out 应在 ${AG22_PARAM_LIMITS.v_out.min}-${AG22_PARAM_LIMITS.v_out.max} ${AG22_PARAM_LIMITS.v_out.unit} 范围内（${AG22_PARAM_LIMITS.v_out.ref}）`)
+    errors.push(`泵出水管设计流速 v_out 应在 ${AG22_PARAM_LIMITS.v_out.min}-${AG22_PARAM_LIMITS.v_out.max} ${AG22_PARAM_LIMITS.v_out.unit} 范围内（${AG22_PARAM_LIMITS.v_out.ref}）`)
 
   if (n !== undefined && (n < AG22_PARAM_LIMITS.n.min || n > AG22_PARAM_LIMITS.n.max))
     errors.push(`曼宁粗糙系数 n 应在 ${AG22_PARAM_LIMITS.n.min}-${AG22_PARAM_LIMITS.n.max} 范围内（${AG22_PARAM_LIMITS.n.ref}）`)
@@ -99,8 +99,8 @@ export function validateAG22Params(params) {
  * @param {number} params.H_total - 总扬程（m），来自AG2-1
  * @param {number} params.Z_stop - 停泵水位（mPD），用于NPSH计算
  * @param {number} params.Z_sump - 集水坑底标高（mPD），用于NPSH计算
- * @param {number} [params.v_in=1.0] - 进水管设计流速（m/s）
- * @param {number} [params.v_out=1.5] - 出水管设计流速（m/s）
+ * @param {number} [params.v_in=1.0] - 泵进水管设计流速（m/s）
+ * @param {number} [params.v_out=1.5] - 泵出水管设计流速（m/s）
  * @param {number} [params.n=0.013] - 曼宁粗糙系数
  * @param {number} [params.k_local=0.15] - 局部损失系数
  * @param {number} [params.NPSH_r=3.0] - 必需汽蚀余量（m）
@@ -114,8 +114,8 @@ export function runAG22({
   H_total,     // 总扬程（m）
   Z_stop,      // 停泵水位（mPD）
   Z_sump,      // 集水坑底标高（mPD）
-  v_in = 1.0,   // 进水管设计流速（m/s），默认值依据手册第8.3节
-  v_out = 1.5,  // 出水管设计流速（m/s），默认值依据经济流速
+  v_in = 1.0,   // 泵进水管设计流速（m/s），默认值依据手册第8.3节
+  v_out = 1.5,  // 泵出水管设计流速（m/s），默认值依据经济流速
   n = 0.013,   // 曼宁粗糙系数（混凝土管），默认值依据手册第8.3节
   k_local = 0.15, // 局部损失系数，默认值依据工程惯例
   NPSH_r = 3.0, // 必需汽蚀余量（m），默认值依据工程惯例
@@ -140,8 +140,8 @@ export function runAG22({
 
   // ── 设计参数标注 ──────────────────────────────────────────
   rows.push(stepRow('═══════════ 设计参数 ═══════════', '', '', ''))
-  rows.push(stepRow('进水管设计流速 v_in', '手册第8.3节(防汽蚀)', v_in, 'm/s'))
-  rows.push(stepRow('出水管设计流速 v_out', '经济流速', v_out, 'm/s'))
+  rows.push(stepRow('泵进水管设计流速 v_in', '手册第8.3节(防汽蚀)', v_in, 'm/s'))
+  rows.push(stepRow('泵出水管设计流速 v_out', '经济流速', v_out, 'm/s'))
   rows.push(stepRow('曼宁粗糙系数 n', '手册第8.3节(混凝土管)', n, 's/m^(1/3)'))
   rows.push(stepRow('局部损失系数 k_local', '工程惯例默认值', k_local, ''))
   rows.push(stepRow('必需汽蚀余量 NPSH_r', '工程惯例典型值', NPSH_r, 'm'))
@@ -156,15 +156,15 @@ export function runAG22({
   const D_pumpIn_calc = Math.sqrt(4 * Q_pump / (Math.PI * v_in)) * 1000
   const DN_pumpIn = selectDN(D_pumpIn_calc)
 
-  rows.push(stepRow('吸水管计算内径 D_pumpIn', `√(4×Q_pump/π×v_in)×1000 =`, fmt(D_pumpIn_calc, 1), 'mm'))
-  rows.push(stepRow('吸水管公称内径 DN_pumpIn', '向上取标准系列', `DN${DN_pumpIn}`, 'mm'))
+  rows.push(stepRow('泵进水管计算内径 D_pumpIn', `√(4×Q_pump/π×v_in)×1000 =`, fmt(D_pumpIn_calc, 1), 'mm'))
+  rows.push(stepRow('泵进水管公称直径 DN_pumpIn', '向上取标准系列', `DN${DN_pumpIn}`, 'mm'))
 
   // 6.2 PumpOutlet 管径（压水管，每台泵独立）
   const D_pumpOut_calc = Math.sqrt(4 * Q_pump / (Math.PI * v_out)) * 1000
   const DN_pumpOut = selectDN(D_pumpOut_calc)
 
-  rows.push(stepRow('压水管计算内径 D_pumpOut', `√(4×Q_pump/π×v_out)×1000 =`, fmt(D_pumpOut_calc, 1), 'mm'))
-  rows.push(stepRow('压水管公称内径 DN_pumpOut', '向上取标准系列', `DN${DN_pumpOut}`, 'mm'))
+  rows.push(stepRow('泵出水管计算内径 D_pumpOut', `√(4×Q_pump/π×v_out)×1000 =`, fmt(D_pumpOut_calc, 1), 'mm'))
+  rows.push(stepRow('泵出水管公称直径 DN_pumpOut', '向上取标准系列', `DN${DN_pumpOut}`, 'mm'))
 
   // 6.3 MainOutlet 管径（总出水干管）
   const q_total = Q / 3600  // 总流量 m³/s
@@ -173,7 +173,7 @@ export function runAG22({
 
   rows.push(stepRow('总出水管计算流量 q_total', `Q / 3600 = ${Q} / 3600 =`, fmt(q_total, 3), 'm³/s'))
   rows.push(stepRow('总出水管计算内径 D_mainOutlet', `√(4×q_total/π×v_out)×1000 =`, fmt(D_mainOutlet_calc, 1), 'mm'))
-  rows.push(stepRow('总出水管公称内径 DN_mainOutlet', '向上取标准系列', `DN${DN_mainOutlet}`, 'mm'))
+  rows.push(stepRow('总出水管公称直径 DN_mainOutlet', '向上取标准系列', `DN${DN_mainOutlet}`, 'mm'))
 
   // ── 步骤6b：水力校核 ─────────────────────────────────────
 
@@ -203,13 +203,13 @@ export function runAG22({
   const v_in_ok = v_in_actual >= 0.6 && v_in_actual <= 1.2
   const v_out_ok = v_out_actual >= 1.0 && v_out_actual <= 1.8
 
-  rows.push(stepRow('进水流速 v_in_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_in_actual, 3), 'm/s'))
-  rows.push(stepRow('进水流速范围校验', '允许0.6-1.2 m/s', v_in_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
-  rows.push(stepRow('出水流速 v_out_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_out_actual, 3), 'm/s'))
-  rows.push(stepRow('出水流速范围校验', '允许1.0-1.8 m/s', v_out_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
+  rows.push(stepRow('泵进水流速 v_in_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_in_actual, 3), 'm/s'))
+  rows.push(stepRow('泵进水流速范围校验', '允许0.6-1.2 m/s', v_in_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
+  rows.push(stepRow('泵出水流速 v_out_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_out_actual, 3), 'm/s'))
+  rows.push(stepRow('泵出水流速范围校验', '允许1.0-1.8 m/s', v_out_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
 
-  if (!v_in_ok) warnings.push(`进水流速 ${fmt(v_in_actual)} m/s 超出允许范围 0.6-1.2 m/s`)
-  if (!v_out_ok) warnings.push(`出水流速 ${fmt(v_out_actual)} m/s 超出允许范围 1.0-1.8 m/s`)
+  if (!v_in_ok) warnings.push(`泵进水流速 ${fmt(v_in_actual)} m/s 超出允许范围 0.6-1.2 m/s`)
+  if (!v_out_ok) warnings.push(`泵出水流速 ${fmt(v_out_actual)} m/s 超出允许范围 1.0-1.8 m/s`)
 
   // 6.8 NPSH 校验
   // NPSH_a = (P_atm - P_v) / (ρg) + H_s - H_suction_loss
