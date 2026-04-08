@@ -1,6 +1,7 @@
 import './style.css'
 
 import { runAG00 } from './agents/ag00-validate.js'
+import { runAG01 } from './agents/ag01-topology.js'
 import { runAG11 } from './agents/ag11-pump-spec.js'
 import { runAG12 } from './agents/ag12-maintenance-room.js'
 import { runAG21 } from './agents/ag21-pool-depth.js'
@@ -8,8 +9,12 @@ import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
+import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
+
+let _lastTopoN     = null
+let _lastTopoSpare = 0
 
 // ── AG4-1 parameter helpers ───────────────────────────────────────────
 
@@ -40,6 +45,7 @@ function updateRepairZoneHint(ag12) {
 async function runCalculation() {
   const Q        = parseFloat(document.getElementById('inp-Q').value)
   const N        = parseInt(document.getElementById('inp-N').value, 10)
+  const N_spare  = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
   const S        = parseFloat(document.getElementById('inp-S').value)
   const h_outlet = parseFloat(document.getElementById('inp-h-outlet').value)
   const pipe_len = parseFloat(document.getElementById('inp-pipe-len').value)
@@ -52,6 +58,17 @@ async function runCalculation() {
 
   const panel = document.getElementById('results-panel')
   panel.hidden = false
+
+  // AG0-1: 若 N 或 N_spare 变化则重置默认拓扑
+  if (N !== _lastTopoN || N_spare !== _lastTopoSpare) {
+    setTopologyFromN(N, N_spare)
+    _lastTopoN     = N
+    _lastTopoSpare = N_spare
+  }
+
+  // AG0-1: 拓扑解析
+  const ag01 = runAG01(getCurrentTopology())
+  document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
     ;['card-ag11', 'card-ag12', 'card-ag21'].forEach(id => {
@@ -74,12 +91,12 @@ async function runCalculation() {
   // AG1-2: maintenance room dimensions
   const motorOverride  = parseFloat(document.getElementById('inp-motor').value)
   const effectiveMotor = isNaN(motorOverride) ? ag11.P_motor : motorOverride
-  const ag12 = runAG12(N, effectiveMotor)
+  const ag12 = runAG12(N, effectiveMotor, N_spare)
   ag12.DN_label = ag11.DN_outlet
   document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
 
-  // AG3-1: pump-room SVG (plan + section)
-  runAG31(N, ag12, ag21, S)
+  // AG3-1: pump-room SVG (plan + section)，从 ag01 取拓扑（单向数据流）
+  runAG31(N, ag12, ag21, S, ag01.topology)
 
   // Update repair_zone hint from AG1-2 before reading AG4-1 params
   updateRepairZoneHint(ag12)
@@ -95,6 +112,25 @@ async function runCalculation() {
 }
 
 // ── Event wiring ──────────────────────────────────────────────────────
+
+// ── 初始化 AG0-1 拓扑编辑器 ──────────────────────────────────────────
+const _initN = parseInt(document.getElementById('inp-N').value, 10) || 3
+initTopologyEditor('topology-editor-wrap', () => {})
+setTopologyFromN(_initN)
+_lastTopoN = _initN
+
+function _updateTopo() {
+  const N       = parseInt(document.getElementById('inp-N').value, 10)
+  const N_spare = parseInt(document.getElementById('inp-N-spare').value, 10) || 0
+  if (N >= 1 && N <= 10 && (N !== _lastTopoN || N_spare !== _lastTopoSpare)) {
+    setTopologyFromN(N, N_spare)
+    _lastTopoN     = N
+    _lastTopoSpare = N_spare
+  }
+}
+
+document.getElementById('inp-N').addEventListener('input', _updateTopo)
+document.getElementById('inp-N-spare').addEventListener('input', _updateTopo)
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 
