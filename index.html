@@ -22,7 +22,7 @@
       <div class="form-group">
         <label>水泵最高总排水量 Q_total（m³/s）</label>
         <input type="number" id="inp-Q-total" min="0.1" step="0.1" value="3.0">
-        <span class="hint">总排水量（多泵合计），直除N得单泵流量</span>
+        <span class="hint">总排水量（多泵合计），直除N得单泵流量；单泵0.5-3.0m³/s（手册附录）</span>
       </div>
       <div class="form-group">
         <label>设计水缸容量 V_design（m³）</label>
@@ -32,7 +32,7 @@
       <div class="form-group">
         <label>设计水缸深度 D（m）</label>
         <input type="number" id="inp-D" step="0.1" value="16.0">
-        <span class="hint">Z_top = Z_bottom + D</span>
+        <span class="hint">Z_top = Z_bottom + D；案例16m（手册典型10-20m）</span>
       </div>
     </div>
     <div class="form-grid">
@@ -72,27 +72,27 @@
           <div class="form-group">
             <label>工作泵台数 N（台）</label>
             <input type="number" id="inp-N" min="1" max="6" step="1" value="2">
-            <span class="hint">不含备用泵，建议 2～6 台</span>
+            <span class="hint">不含备用泵；手册≥1台，惯例2～6台（案例2台）</span>
           </div>
           <div class="form-group">
             <label>备用泵台数 N_spare（台）</label>
             <input type="number" id="inp-N-spare" min="0" max="3" step="1" value="0">
-            <span class="hint">0 = 无备用泵；无备用时工作泵应 ≥ 2 台</span>
+            <span class="hint">无备用泵；无备用时工作泵应 ≥ 2 台，互为备用</span>
           </div>
           <div class="form-group">
             <label>每小时允许启动次数 Z（次/小时）</label>
             <input type="number" id="inp-Z" min="4" max="12" step="1" value="8">
-            <span class="hint">泵参数限制，影响最小容积校验</span>
+            <span class="hint">泵参数限制，手册4-6次/小时（离心泵）；案例8次/小时</span>
           </div>
           <div class="form-group">
             <label>超高 F_b（m）</label>
             <input type="number" id="inp-Fb" step="0.1" value="1.3">
-            <span class="hint">最高水位距池顶的距离</span>
+            <span class="hint">最高水位距池顶的距离，≥0.5m（手册第6.5节）</span>
           </div>
           <div class="form-group">
             <label>安全余量 F_s（m）</label>
             <input type="number" id="inp-Fs" step="0.1" value="0.5">
-            <span class="hint">高于启泵水位的安全超高</span>
+            <span class="hint">高于启泵水位的安全超高，≥0.3m（手册第6.5节）</span>
           </div>
           <div class="form-group">
             <label>电机功率覆盖值（kW）</label>
@@ -102,7 +102,7 @@
           <div class="form-group">
             <label>出水管总长 L（m）</label>
             <input type="number" id="inp-pipe-len" min="1" step="1" value="50">
-            <span class="hint">用于估算管路摩擦损失</span>
+            <span class="hint">用于估算管路摩擦损失（案例50m）</span>
           </div>
         </div>
       </div>
@@ -132,17 +132,17 @@
           <div class="form-group">
             <label>暴雨历时 t_d（min）</label>
             <input type="number" id="inp-td" min="10" max="240" step="10" value="120">
-            <span class="hint">≤240min用IDF公式；>240min用DDF表</span>
+            <span class="hint">≤240min用IDF公式；>240min用DDF表（手册第4.3.4节）</span>
           </div>
           <div class="form-group">
             <label>集水区面积 A（km²）</label>
             <input type="number" id="inp-A" min="0.01" step="0.1" value="1.0">
-            <span class="hint">汇水面积，用于径流估算</span>
+            <span class="hint">汇水面积，用于径流估算；须 >0（手册第7.5.2节）</span>
           </div>
           <div class="form-group">
             <label>径流系数 C</label>
             <input type="number" id="inp-C" min="0.05" max="1.0" step="0.05" value="0.90">
-            <span class="hint">城市地区典型值0.85-0.95</span>
+            <span class="hint">城市沥青/混凝土：0.70-1.00；草地：0.05-0.35（手册表7.5.2）</span>
           </div>
         </div>
       </div>
@@ -153,32 +153,32 @@
           <div class="form-group">
             <label>水力效率 η_hyd</label>
             <input type="number" id="inp-eta-hyd" min="0.5" max="1.0" step="0.01" value="0.82">
-            <span class="hint">手册要求≥0.82</span>
+            <span class="hint">手册要求≥0.82；工作点效率应≥85%η_max（工程惯例）</span>
           </div>
           <div class="form-group">
             <label>电机效率 η_mot</label>
             <input type="number" id="inp-eta-mot" min="0.5" max="1.0" step="0.01" value="0.93">
-            <span class="hint">手册要求≥0.93</span>
+            <span class="hint">手册要求≥0.93（工程惯例值参考）</span>
           </div>
           <div class="form-group">
             <label>曼宁粗糙系数 n</label>
             <input type="number" id="inp-n" min="0.010" max="0.020" step="0.001" value="0.013">
-            <span class="hint">混凝土管典型值0.013-0.015</span>
+            <span class="hint">混凝土管典型值0.013-0.015（工程惯例值参考）</span>
           </div>
           <div class="form-group">
             <label>必需汽蚀余量 NPSH_r（m）</label>
             <input type="number" id="inp-npsh-r" min="0" step="0.1" value="3.0">
-            <span class="hint">大型轴流泵典型值3-5m</span>
+            <span class="hint">大型轴流泵典型值3-5m；常规泵型2-5m（工程惯例）</span>
           </div>
           <div class="form-group">
             <label>进水管设计流速 v_in（m/s）</label>
             <input type="number" id="inp-v-in" min="0.6" max="1.5" step="0.1" value="1.0">
-            <span class="hint">手册第8.3节，防汽蚀</span>
+            <span class="hint">手册第8.3节，防汽蚀；最小流速≥0.6m/s（工程惯例）</span>
           </div>
           <div class="form-group">
             <label>出水管设计流速 v_out（m/s）</label>
             <input type="number" id="inp-v-out" min="1.0" max="2.5" step="0.1" value="1.5">
-            <span class="hint">经济流速</span>
+            <span class="hint">经济流速1.5-3.0m/s（工程惯例值参考）</span>
           </div>
         </div>
       </div>
