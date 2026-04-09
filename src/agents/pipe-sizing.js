@@ -1,4 +1,4 @@
-import { selectDN, fmt, stepRow } from '../utils.js'
+import { selectDN, fmt, stepRow, validateParams } from '../utils.js'
 
 /**
  * AG1-3：管道尺寸计算与水力校核
@@ -51,42 +51,7 @@ export const PIPE_SIZING_LIMITS = {
  * @returns {Array} 错误信息数组
  */
 export function validatePipeSizingParams(params) {
-  const errors = []
-  const { Q_pump, H_total, Q, N, v_in, v_out, n, k_local, NPSH_r, L } = params
-
-  if (Q_pump !== undefined && (Q_pump < PIPE_SIZING_LIMITS.Q_pump.min || Q_pump > PIPE_SIZING_LIMITS.Q_pump.max))
-    errors.push(`单泵流量 Q_pump 应在 ${PIPE_SIZING_LIMITS.Q_pump.min}-${PIPE_SIZING_LIMITS.Q_pump.max} ${PIPE_SIZING_LIMITS.Q_pump.unit} 范围内`)
-
-  if (H_total !== undefined && (H_total < PIPE_SIZING_LIMITS.H_total.min || H_total > PIPE_SIZING_LIMITS.H_total.max))
-    errors.push(`总扬程 H_total 应在 ${PIPE_SIZING_LIMITS.H_total.min}-${PIPE_SIZING_LIMITS.H_total.max} ${PIPE_SIZING_LIMITS.H_total.unit} 范围内`)
-
-  if (Q !== undefined && (Q < PIPE_SIZING_LIMITS.Q.min || Q > PIPE_SIZING_LIMITS.Q.max))
-    errors.push(`泵站总流量 Q 应在 ${PIPE_SIZING_LIMITS.Q.min}-${PIPE_SIZING_LIMITS.Q.max} ${PIPE_SIZING_LIMITS.Q.unit} 范围内`)
-
-  if (N !== undefined) {
-    if (!Number.isInteger(N) || N < PIPE_SIZING_LIMITS.N.min || N > PIPE_SIZING_LIMITS.N.max)
-      errors.push(`工作泵台数 N 应为 ${PIPE_SIZING_LIMITS.N.min}-${PIPE_SIZING_LIMITS.N.max} 之间的整数`)
-  }
-
-  if (v_in !== undefined && (v_in < PIPE_SIZING_LIMITS.v_in.min || v_in > PIPE_SIZING_LIMITS.v_in.max))
-    errors.push(`泵进水管设计流速 v_in 应在 ${PIPE_SIZING_LIMITS.v_in.min}-${PIPE_SIZING_LIMITS.v_in.max} ${PIPE_SIZING_LIMITS.v_in.unit} 范围内（${PIPE_SIZING_LIMITS.v_in.ref}）`)
-
-  if (v_out !== undefined && (v_out < PIPE_SIZING_LIMITS.v_out.min || v_out > PIPE_SIZING_LIMITS.v_out.max))
-    errors.push(`泵出水管设计流速 v_out 应在 ${PIPE_SIZING_LIMITS.v_out.min}-${PIPE_SIZING_LIMITS.v_out.max} ${PIPE_SIZING_LIMITS.v_out.unit} 范围内（${PIPE_SIZING_LIMITS.v_out.ref}）`)
-
-  if (n !== undefined && (n < PIPE_SIZING_LIMITS.n.min || n > PIPE_SIZING_LIMITS.n.max))
-    errors.push(`曼宁粗糙系数 n 应在 ${PIPE_SIZING_LIMITS.n.min}-${PIPE_SIZING_LIMITS.n.max} 范围内（${PIPE_SIZING_LIMITS.n.ref}）`)
-
-  if (k_local !== undefined && (k_local < PIPE_SIZING_LIMITS.k_local.min || k_local > PIPE_SIZING_LIMITS.k_local.max))
-    errors.push(`局部损失系数 k_local 应在 ${PIPE_SIZING_LIMITS.k_local.min}-${PIPE_SIZING_LIMITS.k_local.max} 范围内（${PIPE_SIZING_LIMITS.k_local.ref}）`)
-
-  if (NPSH_r !== undefined && (NPSH_r < PIPE_SIZING_LIMITS.NPSH_r.min || NPSH_r > PIPE_SIZING_LIMITS.NPSH_r.max))
-    errors.push(`必需汽蚀余量 NPSH_r 应在 ${PIPE_SIZING_LIMITS.NPSH_r.min}-${PIPE_SIZING_LIMITS.NPSH_r.max} ${PIPE_SIZING_LIMITS.NPSH_r.unit} 范围内（${PIPE_SIZING_LIMITS.NPSH_r.ref}）`)
-
-  if (L !== undefined && (L < PIPE_SIZING_LIMITS.L.min || L > PIPE_SIZING_LIMITS.L.max))
-    errors.push(`管长 L 应在 ${PIPE_SIZING_LIMITS.L.min}-${PIPE_SIZING_LIMITS.L.max} ${PIPE_SIZING_LIMITS.L.unit} 范围内（${PIPE_SIZING_LIMITS.L.ref}）`)
-
-  return errors
+  return validateParams(params, PIPE_SIZING_LIMITS)
 }
 
 /**
@@ -196,6 +161,9 @@ export function runPipeSizing({
   rows.push(stepRow('总水头损失 H_loss', `H_f + H_local =`, fmt(H_loss, 3), 'm'))
 
   // 6.7 流速校验
+  // 实际流速应满足手册推荐范围（比设计参数范围更严格）：
+  // 进水流速：防止汽蚀、保证吸水性能，推荐0.6-1.2 m/s（手册第8.3节）
+  // 出水流速：经济流速区间，推荐1.0-1.8 m/s（避免磨损+兼顾经济性）
   const D_pumpIn_m = DN_pumpIn / 1000
   const v_in_actual = Q_pump / (Math.PI * Math.pow(D_pumpIn_m / 2, 2))
   const v_out_actual = Q_pump / (Math.PI * Math.pow(D_actual_m / 2, 2))
@@ -204,12 +172,12 @@ export function runPipeSizing({
   const v_out_ok = v_out_actual >= 1.0 && v_out_actual <= 1.8
 
   rows.push(stepRow('泵进水流速 v_in_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_in_actual, 3), 'm/s'))
-  rows.push(stepRow('泵进水流速范围校验', '允许0.6-1.2 m/s', v_in_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
+  rows.push(stepRow('泵进水流速范围校验', '推荐0.6-1.2 m/s（防汽蚀）', v_in_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
   rows.push(stepRow('泵出水流速 v_out_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_out_actual, 3), 'm/s'))
-  rows.push(stepRow('泵出水流速范围校验', '允许1.0-1.8 m/s', v_out_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
+  rows.push(stepRow('泵出水流速范围校验', '推荐1.0-1.8 m/s（经济流速）', v_out_ok ? '✓ 满足' : '✗ 超出', '', '手册第8.3节'))
 
-  if (!v_in_ok) warnings.push(`泵进水流速 ${fmt(v_in_actual)} m/s 超出允许范围 0.6-1.2 m/s`)
-  if (!v_out_ok) warnings.push(`泵出水流速 ${fmt(v_out_actual)} m/s 超出允许范围 1.0-1.8 m/s`)
+  if (!v_in_ok) warnings.push(`泵进水流速 ${fmt(v_in_actual)} m/s 超出推荐范围 0.6-1.2 m/s（防汽蚀）`)
+  if (!v_out_ok) warnings.push(`泵出水流速 ${fmt(v_out_actual)} m/s 超出推荐范围 1.0-1.8 m/s（经济流速）`)
 
   // 6.8 NPSH 校验
   // NPSH_a = (P_atm - P_v) / (ρg) + H_s - H_suction_loss

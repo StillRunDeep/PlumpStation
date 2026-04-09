@@ -1,4 +1,4 @@
-import { selectDN, fmt, stepRow } from '../utils.js'
+import { selectDN, fmt, stepRow, validateParams } from '../utils.js'
 
 /**
  * AG1-2：水泵选型计算
@@ -21,8 +21,8 @@ import { selectDN, fmt, stepRow } from '../utils.js'
  * 设计参数（带默认值，依据手册或工程惯例）：
  *   L             出水管长度（m），默认值50，AG0-0用户输入
  *   n             曼宁粗糙系数，默认0.013（混凝土管），手册第8.3节
- *   η_hyd         水力效率，默认0.82（≥0.82），手册第14.6节
- *   η_mot         电机效率，默认0.93（≥0.93），手册第14.6节
+ *   η_hyd         水力效率，默认0.70（<=0.95），手册第14.6节
+ *   η_mot         电机效率，默认0.85（<=0.98），手册第14.6节
  *   NPSH_r        必需汽蚀余量（m），默认3.0，工程惯例
  *   v_in          进水管设计流速（m/s），默认1.0，防止汽蚀
  *   v_out         出水管设计流速（m/s），默认1.5，经济流速
@@ -39,8 +39,8 @@ export const PUMP_SPEC_LIMITS = {
   // 设计参数范围
   L:            { min: 5,    max: 500,   unit: 'm',    label: '出水管长度', ref: '工程惯例' },
   n:            { min: 0.010, max: 0.020, unit: 's/m^(1/3)', label: '曼宁粗糙系数', ref: '手册第8.3节' },
-  η_hyd:        { min: 0.70, max: 0.95,  unit: '',     label: '水力效率', ref: '手册第14.6节≥0.82' },
-  η_mot:        { min: 0.85, max: 0.98,  unit: '',     label: '电机效率', ref: '手册第14.6节≥0.93' },
+  η_hyd:        { min: 0.70, max: 0.95,  unit: '',     label: '水力效率', ref: '手册第14.6节≥0.70' },
+  η_mot:        { min: 0.85, max: 0.98,  unit: '',     label: '电机效率', ref: '手册第14.6节≥0.85' },
   NPSH_r:       { min: 1.0,  max: 8.0,   unit: 'm',    label: '必需汽蚀余量', ref: '工程惯例2-5m' },
   v_in:         { min: 0.6,  max: 1.5,   unit: 'm/s',  label: '进水管设计流速', ref: '手册第8.3节' },
   v_out:        { min: 1.0,  max: 2.5,   unit: 'm/s',  label: '出水管设计流速', ref: '工程惯例' },
@@ -52,43 +52,7 @@ export const PUMP_SPEC_LIMITS = {
  * @returns {Array} 错误信息数组
  */
 export function validatePumpSpecParams(params) {
-  const errors = []
-  const { Q_single, Z_stop, Z_discharge, L, n, η_hyd, η_mot, NPSH_r, v_in, v_out, k_local } = params
-
-  if (Q_single !== undefined && (Q_single < PUMP_SPEC_LIMITS.Q_single.min || Q_single > PUMP_SPEC_LIMITS.Q_single.max))
-    errors.push(`单泵流量 Q_single 应在 ${PUMP_SPEC_LIMITS.Q_single.min}-${PUMP_SPEC_LIMITS.Q_single.max} ${PUMP_SPEC_LIMITS.Q_single.unit} 范围内`)
-
-  if (Z_stop !== undefined && (Z_stop < PUMP_SPEC_LIMITS.Z_stop.min || Z_stop > PUMP_SPEC_LIMITS.Z_stop.max))
-    errors.push(`停泵水位 Z_stop 应在 ${PUMP_SPEC_LIMITS.Z_stop.min}-${PUMP_SPEC_LIMITS.Z_stop.max} ${PUMP_SPEC_LIMITS.Z_stop.unit} 范围内`)
-
-  if (Z_discharge !== undefined && (Z_discharge < PUMP_SPEC_LIMITS.Z_discharge.min || Z_discharge > PUMP_SPEC_LIMITS.Z_discharge.max))
-    errors.push(`排放口标高 Z_discharge 应在 ${PUMP_SPEC_LIMITS.Z_discharge.min}-${PUMP_SPEC_LIMITS.Z_discharge.max} ${PUMP_SPEC_LIMITS.Z_discharge.unit} 范围内`)
-
-  if (L !== undefined && (L < PUMP_SPEC_LIMITS.L.min || L > PUMP_SPEC_LIMITS.L.max))
-    errors.push(`出水管长度 L 应在 ${PUMP_SPEC_LIMITS.L.min}-${PUMP_SPEC_LIMITS.L.max} ${PUMP_SPEC_LIMITS.L.unit} 范围内（${PUMP_SPEC_LIMITS.L.ref}）`)
-
-  if (n !== undefined && (n < PUMP_SPEC_LIMITS.n.min || n > PUMP_SPEC_LIMITS.n.max))
-    errors.push(`曼宁粗糙系数 n 应在 ${PUMP_SPEC_LIMITS.n.min}-${PUMP_SPEC_LIMITS.n.max} 范围内（${PUMP_SPEC_LIMITS.n.ref}）`)
-
-  if (η_hyd !== undefined && (η_hyd < PUMP_SPEC_LIMITS.η_hyd.min || η_hyd > PUMP_SPEC_LIMITS.η_hyd.max))
-    errors.push(`水力效率 η_hyd 应在 ${PUMP_SPEC_LIMITS.η_hyd.min}-${PUMP_SPEC_LIMITS.η_hyd.max} 范围内（${PUMP_SPEC_LIMITS.η_hyd.ref}）`)
-
-  if (η_mot !== undefined && (η_mot < PUMP_SPEC_LIMITS.η_mot.min || η_mot > PUMP_SPEC_LIMITS.η_mot.max))
-    errors.push(`电机效率 η_mot 应在 ${PUMP_SPEC_LIMITS.η_mot.min}-${PUMP_SPEC_LIMITS.η_mot.max} 范围内（${PUMP_SPEC_LIMITS.η_mot.ref}）`)
-
-  if (NPSH_r !== undefined && (NPSH_r < PUMP_SPEC_LIMITS.NPSH_r.min || NPSH_r > PUMP_SPEC_LIMITS.NPSH_r.max))
-    errors.push(`必需汽蚀余量 NPSH_r 应在 ${PUMP_SPEC_LIMITS.NPSH_r.min}-${PUMP_SPEC_LIMITS.NPSH_r.max} ${PUMP_SPEC_LIMITS.NPSH_r.unit} 范围内（${PUMP_SPEC_LIMITS.NPSH_r.ref}）`)
-
-  if (v_in !== undefined && (v_in < PUMP_SPEC_LIMITS.v_in.min || v_in > PUMP_SPEC_LIMITS.v_in.max))
-    errors.push(`进水管设计流速 v_in 应在 ${PUMP_SPEC_LIMITS.v_in.min}-${PUMP_SPEC_LIMITS.v_in.max} ${PUMP_SPEC_LIMITS.v_in.unit} 范围内（${PUMP_SPEC_LIMITS.v_in.ref}）`)
-
-  if (v_out !== undefined && (v_out < PUMP_SPEC_LIMITS.v_out.min || v_out > PUMP_SPEC_LIMITS.v_out.max))
-    errors.push(`出水管设计流速 v_out 应在 ${PUMP_SPEC_LIMITS.v_out.min}-${PUMP_SPEC_LIMITS.v_out.max} ${PUMP_SPEC_LIMITS.v_out.unit} 范围内（${PUMP_SPEC_LIMITS.v_out.ref}）`)
-
-  if (k_local !== undefined && (k_local < PUMP_SPEC_LIMITS.k_local.min || k_local > PUMP_SPEC_LIMITS.k_local.max))
-    errors.push(`局部损失系数 k_local 应在 ${PUMP_SPEC_LIMITS.k_local.min}-${PUMP_SPEC_LIMITS.k_local.max} 范围内（${PUMP_SPEC_LIMITS.k_local.ref}）`)
-
-  return errors
+  return validateParams(params, PUMP_SPEC_LIMITS)
 }
 
 export function runPumpSpec({
@@ -226,6 +190,9 @@ export function runPumpSpec({
   rows.push(stepRow('出水管公称内径 DN_outlet', '向上取标准系列', `DN${DN_outlet}`, 'mm'))
 
   // ── 流速校验 ──────────────────────────────────────────────
+  // 实际流速应满足手册推荐范围（比设计参数范围更严格）：
+  // 进水流速：防止汽蚀、保证吸水性能，推荐0.6-1.2 m/s（手册第8.3节）
+  // 出水流速：经济流速区间，推荐1.0-1.8 m/s（避免磨损+兼顾经济性）
 
   const v_in_actual = Q_pump / (Math.PI * Math.pow(DN_inlet / 1000 / 2, 2))
   const v_out_actual = Q_pump / (Math.PI * Math.pow(DN_outlet / 1000 / 2, 2))
@@ -234,12 +201,12 @@ export function runPumpSpec({
 
   rows.push(stepRow('═══════════ 流速校验 ═══════════', '', '', ''))
   rows.push(stepRow('进水流速 v_in_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_in_actual, 3), 'm/s', '手册第8.3节'))
-  rows.push(stepRow('进水流速范围', '允许0.6-1.2 m/s', v_in_ok ? '✓ 满足' : '✗ 超出', ''))
+  rows.push(stepRow('进水流速范围', '推荐0.6-1.2 m/s（防汽蚀）', v_in_ok ? '✓ 满足' : '✗ 超出', ''))
   rows.push(stepRow('出水流速 v_out_actual', `Q_pump/(π×(DN/2)²) =`, fmt(v_out_actual, 3), 'm/s', '手册第8.3节'))
-  rows.push(stepRow('出水流速范围', '允许1.0-1.8 m/s', v_out_ok ? '✓ 满足' : '✗ 超出', ''))
+  rows.push(stepRow('出水流速范围', '推荐1.0-1.8 m/s（经济流速）', v_out_ok ? '✓ 满足' : '✗ 超出', ''))
 
-  if (!v_in_ok) warnings.push(`进水流速 ${fmt(v_in_actual)} m/s 超出允许范围 0.6-1.2 m/s`)
-  if (!v_out_ok) warnings.push(`出水流速 ${fmt(v_out_actual)} m/s 超出允许范围 1.0-1.8 m/s`)
+  if (!v_in_ok) warnings.push(`进水流速 ${fmt(v_in_actual)} m/s 超出推荐范围 0.6-1.2 m/s（防汽蚀）`)
+  if (!v_out_ok) warnings.push(`出水流速 ${fmt(v_out_actual)} m/s 超出推荐范围 1.0-1.8 m/s（经济流速）`)
 
   // ── NPSH 校验 ─────────────────────────────────────────────
 

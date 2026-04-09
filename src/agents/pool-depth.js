@@ -1,4 +1,4 @@
-import { ceilTo01, fmt, stepRow } from '../utils.js'
+import { ceilTo01, fmt, stepRow, validateParams } from '../utils.js'
 
 /**
  * AG1-1：调蓄池计算
@@ -57,48 +57,7 @@ export const POOL_DEPTH_LIMITS = {
  * @returns {Array} 错误信息数组
  */
 export function validatePoolDepthParams(params) {
-  const errors = []
-  const { V_design, Z_bottom, D, N, Z, Q_pump,
-          k1, k2, F_b, F_s, h_alarm_offset } = params
-
-  // 基础参数校验
-  if (V_design !== undefined && (V_design < POOL_DEPTH_LIMITS.V_design.min || V_design > POOL_DEPTH_LIMITS.V_design.max))
-    errors.push(`设计水缸容量 V_design 应在 ${POOL_DEPTH_LIMITS.V_design.min}-${POOL_DEPTH_LIMITS.V_design.max} ${POOL_DEPTH_LIMITS.V_design.unit} 范围内`)
-
-  if (Z_bottom !== undefined && (Z_bottom < POOL_DEPTH_LIMITS.Z_bottom.min || Z_bottom > POOL_DEPTH_LIMITS.Z_bottom.max))
-    errors.push(`池底标高 Z_bottom 应在 ${POOL_DEPTH_LIMITS.Z_bottom.min}-${POOL_DEPTH_LIMITS.Z_bottom.max} ${POOL_DEPTH_LIMITS.Z_bottom.unit} 范围内`)
-
-  if (D !== undefined && (D < POOL_DEPTH_LIMITS.D.min || D > POOL_DEPTH_LIMITS.D.max))
-    errors.push(`设计水缸深度 D 应在 ${POOL_DEPTH_LIMITS.D.min}-${POOL_DEPTH_LIMITS.D.max} ${POOL_DEPTH_LIMITS.D.unit} 范围内`)
-
-  if (N !== undefined) {
-    if (!Number.isInteger(N) || N < POOL_DEPTH_LIMITS.N.min || N > POOL_DEPTH_LIMITS.N.max)
-      errors.push(`工作泵台数 N 应为 ${POOL_DEPTH_LIMITS.N.min}-${POOL_DEPTH_LIMITS.N.max} 之间的整数`)
-  }
-
-  if (Z !== undefined && (Z < POOL_DEPTH_LIMITS.Z.min || Z > POOL_DEPTH_LIMITS.Z.max))
-    errors.push(`每小时允许启动次数 Z 应在 ${POOL_DEPTH_LIMITS.Z.min}-${POOL_DEPTH_LIMITS.Z.max} ${POOL_DEPTH_LIMITS.Z.unit} 范围内（${POOL_DEPTH_LIMITS.Z.ref}）`)
-
-  if (Q_pump !== undefined && (Q_pump < POOL_DEPTH_LIMITS.Q_pump.min || Q_pump > POOL_DEPTH_LIMITS.Q_pump.max))
-    errors.push(`单泵流量 Q_pump 应在 ${POOL_DEPTH_LIMITS.Q_pump.min}-${POOL_DEPTH_LIMITS.Q_pump.max} ${POOL_DEPTH_LIMITS.Q_pump.unit} 范围内`)
-
-  // 设计参数校验
-  if (k1 !== undefined && (k1 < POOL_DEPTH_LIMITS.k1.min || k1 > POOL_DEPTH_LIMITS.k1.max))
-    errors.push(`1#泵启动水位系数 k1 应在 ${POOL_DEPTH_LIMITS.k1.min}-${POOL_DEPTH_LIMITS.k1.max} 范围内（${POOL_DEPTH_LIMITS.k1.ref}）`)
-
-  if (k2 !== undefined && (k2 < POOL_DEPTH_LIMITS.k2.min || k2 > POOL_DEPTH_LIMITS.k2.max))
-    errors.push(`2#泵启动水位系数 k2 应在 ${POOL_DEPTH_LIMITS.k2.min}-${POOL_DEPTH_LIMITS.k2.max} 范围内（${POOL_DEPTH_LIMITS.k2.ref}）`)
-
-  if (F_b !== undefined && (F_b < POOL_DEPTH_LIMITS.F_b.min || F_b > POOL_DEPTH_LIMITS.F_b.max))
-    errors.push(`超高 F_b 应在 ${POOL_DEPTH_LIMITS.F_b.min}-${POOL_DEPTH_LIMITS.F_b.max} ${POOL_DEPTH_LIMITS.F_b.unit} 范围内（${POOL_DEPTH_LIMITS.F_b.ref}）`)
-
-  if (F_s !== undefined && (F_s < POOL_DEPTH_LIMITS.F_s.min || F_s > POOL_DEPTH_LIMITS.F_s.max))
-    errors.push(`安全余量 F_s 应在 ${POOL_DEPTH_LIMITS.F_s.min}-${POOL_DEPTH_LIMITS.F_s.max} ${POOL_DEPTH_LIMITS.F_s.unit} 范围内（${POOL_DEPTH_LIMITS.F_s.ref}）`)
-
-  if (h_alarm_offset !== undefined && (h_alarm_offset < POOL_DEPTH_LIMITS.h_alarm_offset.min || h_alarm_offset > POOL_DEPTH_LIMITS.h_alarm_offset.max))
-    errors.push(`低水位报警偏移 h_alarm_offset 应在 ${POOL_DEPTH_LIMITS.h_alarm_offset.min}-${POOL_DEPTH_LIMITS.h_alarm_offset.max} ${POOL_DEPTH_LIMITS.h_alarm_offset.unit} 范围内（${POOL_DEPTH_LIMITS.h_alarm_offset.ref}）`)
-
-  return errors
+  return validateParams(params, POOL_DEPTH_LIMITS)
 }
 
 export function runPoolDepth({
@@ -159,9 +118,10 @@ export function runPoolDepth({
 
   // ── 步骤7：调蓄演算与容积校验 ──────────────────────────────
 
-  // 最小调节容积（由启动次数推算）
-  // V_min = Q_pump / (4 × Z) × 3600
-  // 来源：工程惯例值参考，当来水量等于泵流量一半时，启停最频繁
+  // 最小调节容积 V_min = Q_pump / (4 × Z) × 3600
+  // 推导：每周期排水量 = Q_pump × T，其中T = 3600/Z（秒/次）
+  //       水位从Z_start降至Z_stop期间，泵运行T/2时间（来水=0.5Q_pump时启停最频繁）
+  //       V_min = Q_pump × (T/2) = Q_pump × (3600/Z/2) = Q_pump × 3600 / (4×Z)
   const V_min = (Q_pump / (4 * Z)) * 3600
 
   // 有效调蓄容积 = 面积 × 有效深度
