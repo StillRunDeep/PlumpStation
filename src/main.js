@@ -1,16 +1,16 @@
 import './style.css'
 
-import { runAG00 } from './agents/ag00-validate.js'
-import { runAG01 } from './agents/ag01-topology.js'
-import { runAG11 } from './agents/ag11-pool-depth.js'
-import { runAG21 } from './agents/ag21-maintenance-room.js'
-import { runAG12 } from './agents/ag12-pump-spec.js'
-import { runAG13 } from './agents/ag13-pipe-sizing.js'
-import { runAG31 } from './agents/ag31-drawing.js'
+import { runUserParams } from './agents/user-params.js'
+import { runTopology } from './agents/topology.js'
+import { runPoolDepth } from './agents/pool-depth.js'
+import { runMaintenanceRoom } from './agents/maintenance-room.js'
+import { runPumpSpec } from './agents/pump-spec.js'
+import { runPipeSizing } from './agents/pipe-sizing.js'
+import { runDrawing } from './agents/drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG13, renderAG21 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderPoolDepth, renderPipeSizing, renderMaintenanceRoom, renderPumpSpec } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
@@ -24,20 +24,20 @@ let _lastTopoSpare = 0
  * Auto-fill the repair_zone area hint from AG1-2 output.
  * The repair zone should be at least L × W from the maintenance-room calc.
  */
-function updateRepairZoneHint(ag12) {
+function updateRepairZoneHint(ag21) {
   const noteEl = document.getElementById('ra-repair-note')
   const inputEl = document.getElementById('ra-repair')
   if (!noteEl || !inputEl) return
 
-  const area = Math.ceil(ag12.L * ag12.W)  // m²
+  const area = Math.ceil(ag21.L * ag21.W)  // m²
   noteEl.innerHTML =
-    `继承自 AG1-2：维护间净长 <strong>${ag12.L.toFixed(1)} m</strong> × ` +
-    `净宽 <strong>${ag12.W.toFixed(1)} m</strong> ≈ <strong>${area} m²</strong>。` +
+    `继承自 AG2-1：维护间净长 <strong>${ag21.L.toFixed(1)} m</strong> × ` +
+    `净宽 <strong>${ag21.W.toFixed(1)} m</strong> ≈ <strong>${area} m²</strong>。` +
     `当前输入值为用户指定值；留空则使用比例算法默认值。`
 
   // Only auto-fill if the user hasn't entered a value
   if (!inputEl.value) {
-    inputEl.placeholder = `≈ ${area}（AG1-2）`
+    inputEl.placeholder = `≈ ${area}（AG2-1）`
   }
 }
 
@@ -63,7 +63,7 @@ async function runCalculation() {
     C:          parseFloat(document.getElementById('inp-C').value),
   }
 
-  const ag00 = runAG00(ag00Params)
+  const ag00 = runUserParams(ag00Params)
   document.getElementById('card-ag00').innerHTML = renderAG00(ag00)
 
   const panel = document.getElementById('results-panel')
@@ -78,7 +78,7 @@ async function runCalculation() {
   }
 
   // AG0-1: 拓扑解析
-  const ag01 = runAG01(getCurrentTopology())
+  const ag01 = runTopology(getCurrentTopology())
   document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
@@ -102,8 +102,8 @@ async function runCalculation() {
     F_b:      parseFloat(document.getElementById('inp-Fb').value) || 0.8,
     F_s:      parseFloat(document.getElementById('inp-Fs').value) || 1.0,
   }
-  const ag1Result = runAG11(ag1Params)  // ag11-pool-depth.js = AG1-1 调蓄池计算
-  document.getElementById('card-ag11').innerHTML = renderAG11(ag1Result)
+  const ag1Result = runPoolDepth(ag1Params)  // pool-depth.js = AG1-1 调蓄池计算
+  document.getElementById('card-ag11').innerHTML = renderPoolDepth(ag1Result)
 
   // ── AG1-2: 水泵计算及选型 ───────────────────────────────────────────
   const ag2Params = {
@@ -117,8 +117,8 @@ async function runCalculation() {
     NPSH_r:      parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
   }
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
-  const ag2Result = runAG12(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // AG1-2 水泵选型
-  document.getElementById('card-ag12').innerHTML = renderAG21(ag2Result)
+  const ag2Result = runPumpSpec(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // AG1-2 水泵选型
+  document.getElementById('card-ag12').innerHTML = renderPumpSpec(ag2Result)
 
   // ── AG1-3: 管道尺寸计算 ─────────────────────────────────────────────
   if (ag2Result.valid !== false) {
@@ -127,7 +127,7 @@ async function runCalculation() {
       ? (ag00.Q_total * 3600)
       : (ag00.Q || ag00.Q_total * 3600)
 
-    const ag22Params = {
+    const ag13Params = {
       Q_pump:    ag2Result.Q_pump,        // 单泵设计流量（m³/s）
       Q:         totalFlow,                // 泵站总流量（m³/h）
       N:         ag00.N,                  // 工作泵台数
@@ -141,15 +141,15 @@ async function runCalculation() {
       NPSH_r:    parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
       L:         parseFloat(document.getElementById('inp-pipe-len').value) || 50,
     }
-    const ag22Result = runAG13(ag22Params)
-    document.getElementById('card-ag13').innerHTML = renderAG13(ag22Result)
+    const ag13Result = runPipeSizing(ag13Params)
+    document.getElementById('card-ag13').innerHTML = renderPipeSizing(ag13Result)
   }
 
   // ── AG2-1: 泵房维护间尺寸计算 ─────────────────────────────────────────
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
-  const ag21 = runAG21(ag00.N, effectiveMotor, N_spare)
+  const ag21 = runMaintenanceRoom(ag00.N, effectiveMotor, N_spare)
   ag21.DN_label = ag2Result.DN_outlet
-  document.getElementById('card-ag21').innerHTML = renderAG12(ag21)
+  document.getElementById('card-ag21').innerHTML = renderMaintenanceRoom(ag21)
 
   // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
   // AG3-1 期望从第三个参数解构 h_active, Z_stop, Z_start1, Z_alarm_high
@@ -160,7 +160,7 @@ async function runCalculation() {
     Z_start1:   ag1Result.Z_start1,
     Z_alarm_high: ag1Result.Z_alarm_high,
   }
-  runAG31(ag00.N, ag21, ag31Params, ag1Result.S, ag01.topology)
+  runDrawing(ag00.N, ag21, ag31Params, ag1Result.S, ag01.topology)
 
   // Update repair_zone hint from AG2-1 before reading AG4-1 params
   updateRepairZoneHint(ag21)

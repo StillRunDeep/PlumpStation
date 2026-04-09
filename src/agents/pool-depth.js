@@ -36,7 +36,7 @@ import { ceilTo01, fmt, stepRow } from '../utils.js'
  */
 
 // 参数范围定义（用于校核）
-export const AG11_PARAM_LIMITS = {
+export const POOL_DEPTH_LIMITS = {
   // 输入参数范围
   V_design:   { min: 100,   max: 500000, unit: 'm³',   label: '设计水缸容量' },
   Z_bottom:    { min: -50,   max: 10,     unit: 'mPD',  label: '池底标高' },
@@ -56,52 +56,52 @@ export const AG11_PARAM_LIMITS = {
  * 校验参数是否在有效范围内
  * @returns {Array} 错误信息数组
  */
-export function validateAG11Params(params) {
+export function validatePoolDepthParams(params) {
   const errors = []
   const { V_design, Z_bottom, D, N, Z, Q_pump,
           k1, k2, F_b, F_s, h_alarm_offset } = params
 
   // 基础参数校验
-  if (V_design !== undefined && (V_design < AG11_PARAM_LIMITS.V_design.min || V_design > AG11_PARAM_LIMITS.V_design.max))
-    errors.push(`设计水缸容量 V_design 应在 ${AG11_PARAM_LIMITS.V_design.min}-${AG11_PARAM_LIMITS.V_design.max} ${AG11_PARAM_LIMITS.V_design.unit} 范围内`)
+  if (V_design !== undefined && (V_design < POOL_DEPTH_LIMITS.V_design.min || V_design > POOL_DEPTH_LIMITS.V_design.max))
+    errors.push(`设计水缸容量 V_design 应在 ${POOL_DEPTH_LIMITS.V_design.min}-${POOL_DEPTH_LIMITS.V_design.max} ${POOL_DEPTH_LIMITS.V_design.unit} 范围内`)
 
-  if (Z_bottom !== undefined && (Z_bottom < AG11_PARAM_LIMITS.Z_bottom.min || Z_bottom > AG11_PARAM_LIMITS.Z_bottom.max))
-    errors.push(`池底标高 Z_bottom 应在 ${AG11_PARAM_LIMITS.Z_bottom.min}-${AG11_PARAM_LIMITS.Z_bottom.max} ${AG11_PARAM_LIMITS.Z_bottom.unit} 范围内`)
+  if (Z_bottom !== undefined && (Z_bottom < POOL_DEPTH_LIMITS.Z_bottom.min || Z_bottom > POOL_DEPTH_LIMITS.Z_bottom.max))
+    errors.push(`池底标高 Z_bottom 应在 ${POOL_DEPTH_LIMITS.Z_bottom.min}-${POOL_DEPTH_LIMITS.Z_bottom.max} ${POOL_DEPTH_LIMITS.Z_bottom.unit} 范围内`)
 
-  if (D !== undefined && (D < AG11_PARAM_LIMITS.D.min || D > AG11_PARAM_LIMITS.D.max))
-    errors.push(`设计水缸深度 D 应在 ${AG11_PARAM_LIMITS.D.min}-${AG11_PARAM_LIMITS.D.max} ${AG11_PARAM_LIMITS.D.unit} 范围内`)
+  if (D !== undefined && (D < POOL_DEPTH_LIMITS.D.min || D > POOL_DEPTH_LIMITS.D.max))
+    errors.push(`设计水缸深度 D 应在 ${POOL_DEPTH_LIMITS.D.min}-${POOL_DEPTH_LIMITS.D.max} ${POOL_DEPTH_LIMITS.D.unit} 范围内`)
 
   if (N !== undefined) {
-    if (!Number.isInteger(N) || N < AG11_PARAM_LIMITS.N.min || N > AG11_PARAM_LIMITS.N.max)
-      errors.push(`工作泵台数 N 应为 ${AG11_PARAM_LIMITS.N.min}-${AG11_PARAM_LIMITS.N.max} 之间的整数`)
+    if (!Number.isInteger(N) || N < POOL_DEPTH_LIMITS.N.min || N > POOL_DEPTH_LIMITS.N.max)
+      errors.push(`工作泵台数 N 应为 ${POOL_DEPTH_LIMITS.N.min}-${POOL_DEPTH_LIMITS.N.max} 之间的整数`)
   }
 
-  if (Z !== undefined && (Z < AG11_PARAM_LIMITS.Z.min || Z > AG11_PARAM_LIMITS.Z.max))
-    errors.push(`每小时允许启动次数 Z 应在 ${AG11_PARAM_LIMITS.Z.min}-${AG11_PARAM_LIMITS.Z.max} ${AG11_PARAM_LIMITS.Z.unit} 范围内（${AG11_PARAM_LIMITS.Z.ref}）`)
+  if (Z !== undefined && (Z < POOL_DEPTH_LIMITS.Z.min || Z > POOL_DEPTH_LIMITS.Z.max))
+    errors.push(`每小时允许启动次数 Z 应在 ${POOL_DEPTH_LIMITS.Z.min}-${POOL_DEPTH_LIMITS.Z.max} ${POOL_DEPTH_LIMITS.Z.unit} 范围内（${POOL_DEPTH_LIMITS.Z.ref}）`)
 
-  if (Q_pump !== undefined && (Q_pump < AG11_PARAM_LIMITS.Q_pump.min || Q_pump > AG11_PARAM_LIMITS.Q_pump.max))
-    errors.push(`单泵流量 Q_pump 应在 ${AG11_PARAM_LIMITS.Q_pump.min}-${AG11_PARAM_LIMITS.Q_pump.max} ${AG11_PARAM_LIMITS.Q_pump.unit} 范围内`)
+  if (Q_pump !== undefined && (Q_pump < POOL_DEPTH_LIMITS.Q_pump.min || Q_pump > POOL_DEPTH_LIMITS.Q_pump.max))
+    errors.push(`单泵流量 Q_pump 应在 ${POOL_DEPTH_LIMITS.Q_pump.min}-${POOL_DEPTH_LIMITS.Q_pump.max} ${POOL_DEPTH_LIMITS.Q_pump.unit} 范围内`)
 
   // 设计参数校验
-  if (k1 !== undefined && (k1 < AG11_PARAM_LIMITS.k1.min || k1 > AG11_PARAM_LIMITS.k1.max))
-    errors.push(`1#泵启动水位系数 k1 应在 ${AG11_PARAM_LIMITS.k1.min}-${AG11_PARAM_LIMITS.k1.max} 范围内（${AG11_PARAM_LIMITS.k1.ref}）`)
+  if (k1 !== undefined && (k1 < POOL_DEPTH_LIMITS.k1.min || k1 > POOL_DEPTH_LIMITS.k1.max))
+    errors.push(`1#泵启动水位系数 k1 应在 ${POOL_DEPTH_LIMITS.k1.min}-${POOL_DEPTH_LIMITS.k1.max} 范围内（${POOL_DEPTH_LIMITS.k1.ref}）`)
 
-  if (k2 !== undefined && (k2 < AG11_PARAM_LIMITS.k2.min || k2 > AG11_PARAM_LIMITS.k2.max))
-    errors.push(`2#泵启动水位系数 k2 应在 ${AG11_PARAM_LIMITS.k2.min}-${AG11_PARAM_LIMITS.k2.max} 范围内（${AG11_PARAM_LIMITS.k2.ref}）`)
+  if (k2 !== undefined && (k2 < POOL_DEPTH_LIMITS.k2.min || k2 > POOL_DEPTH_LIMITS.k2.max))
+    errors.push(`2#泵启动水位系数 k2 应在 ${POOL_DEPTH_LIMITS.k2.min}-${POOL_DEPTH_LIMITS.k2.max} 范围内（${POOL_DEPTH_LIMITS.k2.ref}）`)
 
-  if (F_b !== undefined && (F_b < AG11_PARAM_LIMITS.F_b.min || F_b > AG11_PARAM_LIMITS.F_b.max))
-    errors.push(`超高 F_b 应在 ${AG11_PARAM_LIMITS.F_b.min}-${AG11_PARAM_LIMITS.F_b.max} ${AG11_PARAM_LIMITS.F_b.unit} 范围内（${AG11_PARAM_LIMITS.F_b.ref}）`)
+  if (F_b !== undefined && (F_b < POOL_DEPTH_LIMITS.F_b.min || F_b > POOL_DEPTH_LIMITS.F_b.max))
+    errors.push(`超高 F_b 应在 ${POOL_DEPTH_LIMITS.F_b.min}-${POOL_DEPTH_LIMITS.F_b.max} ${POOL_DEPTH_LIMITS.F_b.unit} 范围内（${POOL_DEPTH_LIMITS.F_b.ref}）`)
 
-  if (F_s !== undefined && (F_s < AG11_PARAM_LIMITS.F_s.min || F_s > AG11_PARAM_LIMITS.F_s.max))
-    errors.push(`安全余量 F_s 应在 ${AG11_PARAM_LIMITS.F_s.min}-${AG11_PARAM_LIMITS.F_s.max} ${AG11_PARAM_LIMITS.F_s.unit} 范围内（${AG11_PARAM_LIMITS.F_s.ref}）`)
+  if (F_s !== undefined && (F_s < POOL_DEPTH_LIMITS.F_s.min || F_s > POOL_DEPTH_LIMITS.F_s.max))
+    errors.push(`安全余量 F_s 应在 ${POOL_DEPTH_LIMITS.F_s.min}-${POOL_DEPTH_LIMITS.F_s.max} ${POOL_DEPTH_LIMITS.F_s.unit} 范围内（${POOL_DEPTH_LIMITS.F_s.ref}）`)
 
-  if (h_alarm_offset !== undefined && (h_alarm_offset < AG11_PARAM_LIMITS.h_alarm_offset.min || h_alarm_offset > AG11_PARAM_LIMITS.h_alarm_offset.max))
-    errors.push(`低水位报警偏移 h_alarm_offset 应在 ${AG11_PARAM_LIMITS.h_alarm_offset.min}-${AG11_PARAM_LIMITS.h_alarm_offset.max} ${AG11_PARAM_LIMITS.h_alarm_offset.unit} 范围内（${AG11_PARAM_LIMITS.h_alarm_offset.ref}）`)
+  if (h_alarm_offset !== undefined && (h_alarm_offset < POOL_DEPTH_LIMITS.h_alarm_offset.min || h_alarm_offset > POOL_DEPTH_LIMITS.h_alarm_offset.max))
+    errors.push(`低水位报警偏移 h_alarm_offset 应在 ${POOL_DEPTH_LIMITS.h_alarm_offset.min}-${POOL_DEPTH_LIMITS.h_alarm_offset.max} ${POOL_DEPTH_LIMITS.h_alarm_offset.unit} 范围内（${POOL_DEPTH_LIMITS.h_alarm_offset.ref}）`)
 
   return errors
 }
 
-export function runAG11({
+export function runPoolDepth({
   V_design,   // 设计水缸容量（m³）
   Z_bottom,   // 池底标高（mPD）
   D,          // 设计水缸深度（m）
@@ -119,7 +119,7 @@ export function runAG11({
   const warnings = []
 
   // ── 参数校验 ──────────────────────────────────────────────
-  const validationErrors = validateAG11Params({
+  const validationErrors = validatePoolDepthParams({
     V_design, Z_bottom, D, N, Z, Q_pump,
     k1, k2, F_b, F_s, h_alarm_offset
   })

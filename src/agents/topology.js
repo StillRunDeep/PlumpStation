@@ -222,7 +222,7 @@ export function topologyToAG31Params(topology) {
  * AG0-1 解析代理：对拓扑做连通性检查和设备统计
  * @param {Topology} topology
  */
-export function runAG01(topology) {
+export function runTopology(topology) {
   if (!topology) {
     return { valid: false, errors: ['未找到拓扑数据'], warnings: [], stats: {}, byRoom: {}, isolated: [], dischargeReachable: false, topology: null }
   }

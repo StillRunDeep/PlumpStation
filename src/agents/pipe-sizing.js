@@ -31,7 +31,7 @@ import { selectDN, fmt, stepRow } from '../utils.js'
  */
 
 // 参数范围定义
-export const AG13_PARAM_LIMITS = {
+export const PIPE_SIZING_LIMITS = {
   // 输入参数范围
   Q_pump:      { min: 0.001, max: 100,   unit: 'm³/s', label: '单泵设计流量' },
   H_total:     { min: 1,     max: 50,    unit: 'm',    label: '总扬程' },
@@ -50,41 +50,41 @@ export const AG13_PARAM_LIMITS = {
  * 校验AG1-3参数是否在有效范围内
  * @returns {Array} 错误信息数组
  */
-export function validateAG13Params(params) {
+export function validatePipeSizingParams(params) {
   const errors = []
   const { Q_pump, H_total, Q, N, v_in, v_out, n, k_local, NPSH_r, L } = params
 
-  if (Q_pump !== undefined && (Q_pump < AG13_PARAM_LIMITS.Q_pump.min || Q_pump > AG13_PARAM_LIMITS.Q_pump.max))
-    errors.push(`单泵流量 Q_pump 应在 ${AG13_PARAM_LIMITS.Q_pump.min}-${AG13_PARAM_LIMITS.Q_pump.max} ${AG13_PARAM_LIMITS.Q_pump.unit} 范围内`)
+  if (Q_pump !== undefined && (Q_pump < PIPE_SIZING_LIMITS.Q_pump.min || Q_pump > PIPE_SIZING_LIMITS.Q_pump.max))
+    errors.push(`单泵流量 Q_pump 应在 ${PIPE_SIZING_LIMITS.Q_pump.min}-${PIPE_SIZING_LIMITS.Q_pump.max} ${PIPE_SIZING_LIMITS.Q_pump.unit} 范围内`)
 
-  if (H_total !== undefined && (H_total < AG13_PARAM_LIMITS.H_total.min || H_total > AG13_PARAM_LIMITS.H_total.max))
-    errors.push(`总扬程 H_total 应在 ${AG13_PARAM_LIMITS.H_total.min}-${AG13_PARAM_LIMITS.H_total.max} ${AG13_PARAM_LIMITS.H_total.unit} 范围内`)
+  if (H_total !== undefined && (H_total < PIPE_SIZING_LIMITS.H_total.min || H_total > PIPE_SIZING_LIMITS.H_total.max))
+    errors.push(`总扬程 H_total 应在 ${PIPE_SIZING_LIMITS.H_total.min}-${PIPE_SIZING_LIMITS.H_total.max} ${PIPE_SIZING_LIMITS.H_total.unit} 范围内`)
 
-  if (Q !== undefined && (Q < AG13_PARAM_LIMITS.Q.min || Q > AG13_PARAM_LIMITS.Q.max))
-    errors.push(`泵站总流量 Q 应在 ${AG13_PARAM_LIMITS.Q.min}-${AG13_PARAM_LIMITS.Q.max} ${AG13_PARAM_LIMITS.Q.unit} 范围内`)
+  if (Q !== undefined && (Q < PIPE_SIZING_LIMITS.Q.min || Q > PIPE_SIZING_LIMITS.Q.max))
+    errors.push(`泵站总流量 Q 应在 ${PIPE_SIZING_LIMITS.Q.min}-${PIPE_SIZING_LIMITS.Q.max} ${PIPE_SIZING_LIMITS.Q.unit} 范围内`)
 
   if (N !== undefined) {
-    if (!Number.isInteger(N) || N < AG13_PARAM_LIMITS.N.min || N > AG13_PARAM_LIMITS.N.max)
-      errors.push(`工作泵台数 N 应为 ${AG13_PARAM_LIMITS.N.min}-${AG13_PARAM_LIMITS.N.max} 之间的整数`)
+    if (!Number.isInteger(N) || N < PIPE_SIZING_LIMITS.N.min || N > PIPE_SIZING_LIMITS.N.max)
+      errors.push(`工作泵台数 N 应为 ${PIPE_SIZING_LIMITS.N.min}-${PIPE_SIZING_LIMITS.N.max} 之间的整数`)
   }
 
-  if (v_in !== undefined && (v_in < AG13_PARAM_LIMITS.v_in.min || v_in > AG13_PARAM_LIMITS.v_in.max))
-    errors.push(`泵进水管设计流速 v_in 应在 ${AG13_PARAM_LIMITS.v_in.min}-${AG13_PARAM_LIMITS.v_in.max} ${AG13_PARAM_LIMITS.v_in.unit} 范围内（${AG13_PARAM_LIMITS.v_in.ref}）`)
+  if (v_in !== undefined && (v_in < PIPE_SIZING_LIMITS.v_in.min || v_in > PIPE_SIZING_LIMITS.v_in.max))
+    errors.push(`泵进水管设计流速 v_in 应在 ${PIPE_SIZING_LIMITS.v_in.min}-${PIPE_SIZING_LIMITS.v_in.max} ${PIPE_SIZING_LIMITS.v_in.unit} 范围内（${PIPE_SIZING_LIMITS.v_in.ref}）`)
 
-  if (v_out !== undefined && (v_out < AG13_PARAM_LIMITS.v_out.min || v_out > AG13_PARAM_LIMITS.v_out.max))
-    errors.push(`泵出水管设计流速 v_out 应在 ${AG13_PARAM_LIMITS.v_out.min}-${AG13_PARAM_LIMITS.v_out.max} ${AG13_PARAM_LIMITS.v_out.unit} 范围内（${AG13_PARAM_LIMITS.v_out.ref}）`)
+  if (v_out !== undefined && (v_out < PIPE_SIZING_LIMITS.v_out.min || v_out > PIPE_SIZING_LIMITS.v_out.max))
+    errors.push(`泵出水管设计流速 v_out 应在 ${PIPE_SIZING_LIMITS.v_out.min}-${PIPE_SIZING_LIMITS.v_out.max} ${PIPE_SIZING_LIMITS.v_out.unit} 范围内（${PIPE_SIZING_LIMITS.v_out.ref}）`)
 
-  if (n !== undefined && (n < AG13_PARAM_LIMITS.n.min || n > AG13_PARAM_LIMITS.n.max))
-    errors.push(`曼宁粗糙系数 n 应在 ${AG13_PARAM_LIMITS.n.min}-${AG13_PARAM_LIMITS.n.max} 范围内（${AG13_PARAM_LIMITS.n.ref}）`)
+  if (n !== undefined && (n < PIPE_SIZING_LIMITS.n.min || n > PIPE_SIZING_LIMITS.n.max))
+    errors.push(`曼宁粗糙系数 n 应在 ${PIPE_SIZING_LIMITS.n.min}-${PIPE_SIZING_LIMITS.n.max} 范围内（${PIPE_SIZING_LIMITS.n.ref}）`)
 
-  if (k_local !== undefined && (k_local < AG13_PARAM_LIMITS.k_local.min || k_local > AG13_PARAM_LIMITS.k_local.max))
-    errors.push(`局部损失系数 k_local 应在 ${AG13_PARAM_LIMITS.k_local.min}-${AG13_PARAM_LIMITS.k_local.max} 范围内（${AG13_PARAM_LIMITS.k_local.ref}）`)
+  if (k_local !== undefined && (k_local < PIPE_SIZING_LIMITS.k_local.min || k_local > PIPE_SIZING_LIMITS.k_local.max))
+    errors.push(`局部损失系数 k_local 应在 ${PIPE_SIZING_LIMITS.k_local.min}-${PIPE_SIZING_LIMITS.k_local.max} 范围内（${PIPE_SIZING_LIMITS.k_local.ref}）`)
 
-  if (NPSH_r !== undefined && (NPSH_r < AG13_PARAM_LIMITS.NPSH_r.min || NPSH_r > AG13_PARAM_LIMITS.NPSH_r.max))
-    errors.push(`必需汽蚀余量 NPSH_r 应在 ${AG13_PARAM_LIMITS.NPSH_r.min}-${AG13_PARAM_LIMITS.NPSH_r.max} ${AG13_PARAM_LIMITS.NPSH_r.unit} 范围内（${AG13_PARAM_LIMITS.NPSH_r.ref}）`)
+  if (NPSH_r !== undefined && (NPSH_r < PIPE_SIZING_LIMITS.NPSH_r.min || NPSH_r > PIPE_SIZING_LIMITS.NPSH_r.max))
+    errors.push(`必需汽蚀余量 NPSH_r 应在 ${PIPE_SIZING_LIMITS.NPSH_r.min}-${PIPE_SIZING_LIMITS.NPSH_r.max} ${PIPE_SIZING_LIMITS.NPSH_r.unit} 范围内（${PIPE_SIZING_LIMITS.NPSH_r.ref}）`)
 
-  if (L !== undefined && (L < AG13_PARAM_LIMITS.L.min || L > AG13_PARAM_LIMITS.L.max))
-    errors.push(`管长 L 应在 ${AG13_PARAM_LIMITS.L.min}-${AG13_PARAM_LIMITS.L.max} ${AG13_PARAM_LIMITS.L.unit} 范围内（${AG13_PARAM_LIMITS.L.ref}）`)
+  if (L !== undefined && (L < PIPE_SIZING_LIMITS.L.min || L > PIPE_SIZING_LIMITS.L.max))
+    errors.push(`管长 L 应在 ${PIPE_SIZING_LIMITS.L.min}-${PIPE_SIZING_LIMITS.L.max} ${PIPE_SIZING_LIMITS.L.unit} 范围内（${PIPE_SIZING_LIMITS.L.ref}）`)
 
   return errors
 }
@@ -107,7 +107,7 @@ export function validateAG13Params(params) {
  * @param {number} [params.L=50] - 管长（m）
  * @returns {Object} 计算结果
  */
-export function runAG13({
+export function runPipeSizing({
   Q_pump,      // 单泵设计流量（m³/s）
   Q,           // 泵站总流量（m³/h）
   N,           // 工作泵台数
@@ -125,7 +125,7 @@ export function runAG13({
   const warnings = []
 
   // ── 参数校验 ──────────────────────────────────────────────
-  const validationErrors = validateAG13Params({
+  const validationErrors = validatePipeSizingParams({
     Q_pump, Q, N, H_total, v_in, v_out, n, k_local, NPSH_r, L
   })
 

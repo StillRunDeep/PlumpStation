@@ -1,9 +1,9 @@
 import { fmt } from '../utils.js'
 import { _r, _l, _t, _poly, _dh, _dv } from '../render/svg-helpers.js'
 import { initSvgZoomPan } from '../render/zoom-pan.js'
-import { topologyToAG31Params } from './ag01-topology.js'
+import { topologyToAG31Params } from './topology.js'
 
-export function runAG31(N, ag12, ag21, S, topology = null) {
+export function runDrawing(N, ag12, ag21, S, topology = null) {
   const { L, W, d_spacing, e_wall, w_pump, d_pump, N_total } = ag12
   const { h_active: h_pool, Z_stop: stopLevel, Z_start1: startLevel, Z_alarm_high: alarmLevel } = ag21
 

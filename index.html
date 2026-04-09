@@ -96,8 +96,8 @@
           </div>
           <div class="form-group">
             <label>电机功率覆盖值（kW）</label>
-            <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG2-1 计算">
-            <span class="hint">留空则使用 AG2-1 计算值；填入则强制覆盖（影响泵间距）</span>
+            <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG1-2 计算">
+            <span class="hint">留空则使用 AG1-2 计算值；填入则强制覆盖（影响泵间距）</span>
           </div>
           <div class="form-group">
             <label>出水管总长 L（m）</label>
@@ -305,7 +305,7 @@
       </div>
 
       <!-- AG1-1 -->
-      <div class="agent-card card-ag11">
+      <div class="agent-card card-pool-depth">
         <div class="card-header">
           <span>AG1-1</span><span class="agent-label">污水池计算</span>
         </div>
@@ -313,7 +313,7 @@
       </div>
 
       <!-- AG1-2 -->
-      <div class="agent-card card-ag12">
+      <div class="agent-card card-pump-spec">
         <div class="card-header">
           <span>AG1-2</span><span class="agent-label">水泵计算及选型</span>
         </div>
@@ -321,7 +321,7 @@
       </div>
 
       <!-- AG1-3 -->
-      <div class="agent-card card-ag13">
+      <div class="agent-card card-pipe-sizing">
         <div class="card-header">
           <span>AG1-3</span><span class="agent-label">管道尺寸计算</span>
         </div>
@@ -329,7 +329,7 @@
       </div>
 
       <!-- AG2-1 -->
-      <div class="agent-card card-ag21">
+      <div class="agent-card card-maintenance-room">
         <div class="card-header">
           <span>AG2-1</span><span class="agent-label">泵房维护间尺寸计算</span>
         </div>

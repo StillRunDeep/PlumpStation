@@ -64,7 +64,7 @@ export function renderAG00(r) {
 }
 
 // AG1-1：污水池计算 → 渲染 V_required, Z_stop, startLevels 等
-export function renderAG11(r) {
+export function renderPoolDepth(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
   const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
@@ -114,7 +114,8 @@ export function renderAG11(r) {
   `
 }
 
-export function renderAG12(r) {
+// AG2-1：泵房维护间尺寸计算 → 渲染 d_spacing, e_wall, L, W
+export function renderMaintenanceRoom(r) {
   return `
     <details style="margin-bottom:14px"><summary style="cursor:pointer;color:#555;font-size:12px;margin-bottom:6px">计算过程（点击展开）</summary>${stepsTable(r.rows)}</details>
     <div class="result-summary pass">
@@ -126,8 +127,8 @@ export function renderAG12(r) {
   `
 }
 
-// AG1-2：水泵计算及选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
-export function renderAG21(r) {
+// AG12：水泵计算及选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
+export function renderPumpSpec(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
   const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'
@@ -170,7 +171,7 @@ export function renderAG21(r) {
 }
 
 // AG1-3：管道尺寸计算
-export function renderAG13(r) {
+export function renderPipeSizing(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
   const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'

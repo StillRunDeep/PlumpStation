@@ -1,6 +1,6 @@
 import { ceilTo01, fmt, stepRow } from '../utils.js'
 
-export function runAG21(N, motorPower, N_spare = 0) {
+export function runMaintenanceRoom(N, motorPower, N_spare = 0) {
   const w_pump    = 0.6
   const d_pump    = 0.8
   const d_spacing = motorPower > 55 ? 1.2 : 1.0
