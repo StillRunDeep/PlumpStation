@@ -53,6 +53,7 @@ async function runCalculation() {
     Z:          parseInt(document.getElementById('inp-Z').value, 10) || 8,
     V_design:   parseFloat(document.getElementById('inp-V-design').value),
     Z_bottom:   parseFloat(document.getElementById('inp-z-bottom').value),
+    Z_sump:     parseFloat(document.getElementById('inp-Z-sump').value),
     D:          parseFloat(document.getElementById('inp-D').value),
     Z_discharge: parseFloat(document.getElementById('inp-z-discharge').value),
     // 暴雨分析模式参数（当Q_total为空时使用）
@@ -61,6 +62,9 @@ async function runCalculation() {
     t_d:        parseFloat(document.getElementById('inp-td').value),
     A:          parseFloat(document.getElementById('inp-A').value),
     C:          parseFloat(document.getElementById('inp-C').value),
+    delta_i:    parseFloat(document.getElementById('inp-delta-i').value) || 0,
+    H:          parseFloat(document.getElementById('inp-H').value) || 1.0,
+    L:          parseFloat(document.getElementById('inp-L').value) || 500,
   }
 
   const ag00 = runUserParams(ag00Params)

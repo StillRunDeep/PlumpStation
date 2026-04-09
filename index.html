@@ -95,6 +95,21 @@
             <span class="hint">高于启泵水位的安全超高，≥0.3m（手册第6.5节）</span>
           </div>
           <div class="form-group">
+            <label>集水坑底标高 Z_sump（mPD）</label>
+            <input type="number" id="inp-Z-sump" step="0.1" value="-15.0">
+            <span class="hint">低于池底标高，通常低2-3m（手册第14.6.3节）</span>
+          </div>
+          <div class="form-group">
+            <label>池壁坡度 S_wall</label>
+            <select id="inp-S-wall">
+              <option value="vertical" selected>垂直</option>
+              <option value="1:1">1:1</option>
+              <option value="1:1.5">1:1.5</option>
+              <option value="1:2">1:2</option>
+            </select>
+            <span class="hint">垂直或坡比（手册第13.3节）</span>
+          </div>
+          <div class="form-group">
             <label>电机功率覆盖值（kW）</label>
             <input type="number" id="inp-motor" min="1" step="1" placeholder="默认：由 AG1-2 计算">
             <span class="hint">留空则使用 AG1-2 计算值；填入则强制覆盖（影响泵间距）</span>
@@ -143,6 +158,21 @@
             <label>径流系数 C</label>
             <input type="number" id="inp-C" min="0.05" max="1.0" step="0.05" value="0.90">
             <span class="hint">城市沥青/混凝土：0.70-1.00；草地：0.05-0.35（手册表7.5.2）</span>
+          </div>
+          <div class="form-group">
+            <label>气候变化降雨增加量 Δi（%）</label>
+            <input type="number" id="inp-delta-i" min="0" max="30" step="5" value="0">
+            <span class="hint">可选；0=当前气候，10=21世纪中叶，20/25=21世纪末（手册第6.8节）</span>
+          </div>
+          <div class="form-group">
+            <label>平均坡降 H（m/100m）</label>
+            <input type="number" id="inp-H" min="0.1" step="0.1" value="1.0" placeholder="1.0">
+            <span class="hint">用于集流时间计算；布兰兹贝-威廉公式</span>
+          </div>
+          <div class="form-group">
+            <label>最长流径水平距离 L（m）</label>
+            <input type="number" id="inp-L" min="10" step="10" value="500" placeholder="500">
+            <span class="hint">沿天然流向的水平距离；用于集流时间计算</span>
           </div>
         </div>
       </div>
