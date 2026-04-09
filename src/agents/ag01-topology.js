@@ -271,7 +271,6 @@ export function runAG01(topology) {
   for (const d of isolated) {
     warnings.push(`设备「${d.label}」未连入拓扑（孤立节点）`)
   }
-  if (sparePumps.length === 0) warnings.push('未配置备用泵（建议至少 1 台）')
 
   return {
     valid: errors.length === 0,

@@ -148,8 +148,6 @@ export function runAG00({
 
   if (isNaN(N_spare) || !Number.isInteger(N_spare) || N_spare < AG00_PARAM_LIMITS.N_spare.min || N_spare > AG00_PARAM_LIMITS.N_spare.max)
     errors.push(`备用泵台数 N_spare 应为 ${AG00_PARAM_LIMITS.N_spare.min}-${AG00_PARAM_LIMITS.N_spare.max} 之间的整数`)
-  else if (N_spare === 0 && N < 2)
-    errors.push(`无备用泵时（ N_spare = 0 ），工作泵台数 N 应 ≥ 2 台，以实现互为备用`)
 
   if (isNaN(Z) || Z < AG00_PARAM_LIMITS.Z.min || Z > AG00_PARAM_LIMITS.Z.max)
     errors.push(`每小时允许启动次数 Z 应在 ${AG00_PARAM_LIMITS.Z.min}-${AG00_PARAM_LIMITS.Z.max} ${AG00_PARAM_LIMITS.Z.unit} 范围内（${AG00_PARAM_LIMITS.Z.ref}）`)
@@ -258,8 +256,7 @@ export function runAG00({
     rows.push(stepRow('═══════════ 流量参数（直接输入） ═══════════', '', '', ''))
     rows.push(stepRow('水泵最高总排水量 Q_total', '用户输入', Q_total, 'm³/s', ''))
     rows.push(stepRow('设计水缸容量 V_design', '用户输入', V_design, 'm³', ''))
-    rows.push(stepRow('单泵设计流量 Q_pump', `Q_total / N = ${fmt(Q_total)} / ${N} =`, Q_pump, 'm³/s', ''))
-    rows.push(stepRow('单泵设计流量 Q_single', `Q_pump × 3600 =`, Q_single, 'm³/h', ''))
+    rows.push(stepRow('单泵设计流量 Q_pump', `Q_total / N = ${fmt(Q_total)} / ${N}`, Q_pump, 'm³/s', ''))
   } else {
     rows.push(stepRow('═══════════ 暴雨分析参数 ═══════════', '', '', ''))
     rows.push(stepRow('暴雨分区 zone', `手册第4.3.2节`, zone, '', `选项：${Object.entries(AG00_PARAM_LIMITS.zone.labels).map(([k,v]) => `${k}=${v}`).join(', ')}`))
@@ -280,8 +277,8 @@ export function runAG00({
     rows.push(stepRow('单泵设计流量 Q_single', `Q / N = ${fmt(Q)} / ${N} =`, Q_single, 'm³/h', ''))
   }
 
-  if (Q_single > 2000)
-    warnings.push(`单泵流量 ${fmt(Q_single)} m³/h 偏大，请确认输入参数`)
+  if (Q_pump > 3)
+    warnings.push(`单泵流量 ${fmt(Q_single)} m³/h（${fmt(Q_pump)} m³/s）偏大，请确认输入参数`)
 
   return {
     valid: true,

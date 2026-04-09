@@ -82,7 +82,7 @@ async function runCalculation() {
   document.getElementById('card-ag01').innerHTML = renderAG01(ag01)
 
   if (!ag00.valid) {
-    ;['card-ag11', 'card-ag12', 'card-ag21', 'card-ag22'].forEach(id => {
+    ;['card-ag11', 'card-ag12', 'card-ag13', 'card-ag21'].forEach(id => {
       document.getElementById(id).innerHTML =
         '<p style="color:#999;padding:8px">参数验证未通过，无法计算。</p>'
     })
@@ -91,7 +91,7 @@ async function runCalculation() {
     return
   }
 
-  // ── AG1-1: 调蓄池计算 ─────────────────────────────────────────────
+  // ── AG1-1: 污水池计算 ─────────────────────────────────────────────
   const ag1Params = {
     V_design: ag00.V_design,
     Z_bottom: ag00.Z_bottom,
@@ -105,7 +105,7 @@ async function runCalculation() {
   const ag1Result = runAG11(ag1Params)  // ag11-pool-depth.js = AG1-1 调蓄池计算
   document.getElementById('card-ag11').innerHTML = renderAG11(ag1Result)
 
-  // ── AG2-1: 水泵选型计算 ───────────────────────────────────────────
+  // ── AG1-2: 水泵计算及选型 ───────────────────────────────────────────
   const ag2Params = {
     Q_single:    ag00.Q_single,
     Z_stop:      ag1Result.Z_stop,
@@ -118,9 +118,9 @@ async function runCalculation() {
   }
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
   const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
-  document.getElementById('card-ag21').innerHTML = renderAG21(ag2Result)
+  document.getElementById('card-ag12').innerHTML = renderAG21(ag2Result)
 
-  // ── AG2-2: 管道尺寸计算与水力校核 ─────────────────────────────────
+  // ── AG1-3: 管道尺寸计算 ─────────────────────────────────────────────
   if (ag2Result.valid !== false) {
     // 总流量Q：在直接输入模式下使用Q_total×3600，否则使用ag00.Q
     const totalFlow = ag00.mode === 'direct'
@@ -142,14 +142,14 @@ async function runCalculation() {
       L:         parseFloat(document.getElementById('inp-pipe-len').value) || 50,
     }
     const ag22Result = runAG22(ag22Params)
-    document.getElementById('card-ag22').innerHTML = renderAG22(ag22Result)
+    document.getElementById('card-ag13').innerHTML = renderAG22(ag22Result)
   }
 
-  // ── AG1-2: 维护间尺寸 ─────────────────────────────────────────────
+  // ── AG2-1: 泵房维护间尺寸计算 ─────────────────────────────────────────
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
   const ag12 = runAG12(ag00.N, effectiveMotor, N_spare)
   ag12.DN_label = ag2Result.DN_outlet
-  document.getElementById('card-ag12').innerHTML = renderAG12(ag12)
+  document.getElementById('card-ag21').innerHTML = renderAG12(ag12)
 
   // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
   // AG3-1 期望从第三个参数解构 h_active, Z_stop, Z_start1, Z_alarm_high

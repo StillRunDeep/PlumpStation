@@ -211,7 +211,6 @@ export function runAG11({
   if (Z_start1 <= Z_stop) waterLevelErrors.push(`Z_start1(${fmt(Z_start1)}) <= Z_stop(${fmt(Z_stop)})`)
   if (Z_start2 <= Z_start1) waterLevelErrors.push(`Z_start2(${fmt(Z_start2)}) <= Z_start1(${fmt(Z_start1)})`)
   if (Z_max >= Z_top - 0.01) waterLevelErrors.push(`Z_max(${fmt(Z_max)}) >= Z_top(${fmt(Z_top)})`)
-  if (Z_alarm_low < Z_bottom) waterLevelErrors.push(`Z_alarm_low(${fmt(Z_alarm_low)}) < Z_bottom(${fmt(Z_bottom)})`)
 
   if (waterLevelErrors.length > 0) {
     warnings.push(...waterLevelErrors)

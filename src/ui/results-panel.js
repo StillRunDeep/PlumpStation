@@ -63,7 +63,7 @@ export function renderAG00(r) {
   `
 }
 
-// AG1-1：调蓄池计算 → 渲染 V_required, Z_stop, startLevels 等
+// AG1-1：污水池计算 → 渲染 V_required, Z_stop, startLevels 等
 export function renderAG11(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
@@ -126,7 +126,7 @@ export function renderAG12(r) {
   `
 }
 
-// AG2-1：水泵选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
+// AG1-2：水泵计算及选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
 export function renderAG21(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
@@ -169,7 +169,7 @@ export function renderAG21(r) {
   `
 }
 
-// AG2-2：管道尺寸计算与水力校核
+// AG1-3：管道尺寸计算
 export function renderAG22(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
