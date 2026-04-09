@@ -1,7 +1,7 @@
 import { selectDN, fmt, stepRow } from '../utils.js'
 
 /**
- * AG2-1：水泵选型计算
+ * AG1-2：水泵选型计算
  *
  * 依据：香港渠务署《雨水排水手册（第五版）》第14章
  *
@@ -31,7 +31,7 @@ import { selectDN, fmt, stepRow } from '../utils.js'
  */
 
 // 参数范围定义
-export const AG21_PARAM_LIMITS = {
+export const AG12_PARAM_LIMITS = {
   // 输入参数范围
   Q_single:    { min: 0.1,   max: 10000,  unit: 'm³/h', label: '单泵设计流量' },
   Z_stop:       { min: -50,  max: 10,    unit: 'mPD',  label: '停泵水位' },
@@ -48,45 +48,45 @@ export const AG21_PARAM_LIMITS = {
 }
 
 /**
- * 校验AG2-1参数是否在有效范围内
+ * 校验AG1-2参数是否在有效范围内
  * @returns {Array} 错误信息数组
  */
-export function validateAG21Params(params) {
+export function validateAG12Params(params) {
   const errors = []
   const { Q_single, Z_stop, Z_discharge, L, n, η_hyd, η_mot, NPSH_r, v_in, v_out, k_local } = params
 
-  if (Q_single !== undefined && (Q_single < AG21_PARAM_LIMITS.Q_single.min || Q_single > AG21_PARAM_LIMITS.Q_single.max))
-    errors.push(`单泵流量 Q_single 应在 ${AG21_PARAM_LIMITS.Q_single.min}-${AG21_PARAM_LIMITS.Q_single.max} ${AG21_PARAM_LIMITS.Q_single.unit} 范围内`)
+  if (Q_single !== undefined && (Q_single < AG12_PARAM_LIMITS.Q_single.min || Q_single > AG12_PARAM_LIMITS.Q_single.max))
+    errors.push(`单泵流量 Q_single 应在 ${AG12_PARAM_LIMITS.Q_single.min}-${AG12_PARAM_LIMITS.Q_single.max} ${AG12_PARAM_LIMITS.Q_single.unit} 范围内`)
 
-  if (Z_stop !== undefined && (Z_stop < AG21_PARAM_LIMITS.Z_stop.min || Z_stop > AG21_PARAM_LIMITS.Z_stop.max))
-    errors.push(`停泵水位 Z_stop 应在 ${AG21_PARAM_LIMITS.Z_stop.min}-${AG21_PARAM_LIMITS.Z_stop.max} ${AG21_PARAM_LIMITS.Z_stop.unit} 范围内`)
+  if (Z_stop !== undefined && (Z_stop < AG12_PARAM_LIMITS.Z_stop.min || Z_stop > AG12_PARAM_LIMITS.Z_stop.max))
+    errors.push(`停泵水位 Z_stop 应在 ${AG12_PARAM_LIMITS.Z_stop.min}-${AG12_PARAM_LIMITS.Z_stop.max} ${AG12_PARAM_LIMITS.Z_stop.unit} 范围内`)
 
-  if (Z_discharge !== undefined && (Z_discharge < AG21_PARAM_LIMITS.Z_discharge.min || Z_discharge > AG21_PARAM_LIMITS.Z_discharge.max))
-    errors.push(`排放口标高 Z_discharge 应在 ${AG21_PARAM_LIMITS.Z_discharge.min}-${AG21_PARAM_LIMITS.Z_discharge.max} ${AG21_PARAM_LIMITS.Z_discharge.unit} 范围内`)
+  if (Z_discharge !== undefined && (Z_discharge < AG12_PARAM_LIMITS.Z_discharge.min || Z_discharge > AG12_PARAM_LIMITS.Z_discharge.max))
+    errors.push(`排放口标高 Z_discharge 应在 ${AG12_PARAM_LIMITS.Z_discharge.min}-${AG12_PARAM_LIMITS.Z_discharge.max} ${AG12_PARAM_LIMITS.Z_discharge.unit} 范围内`)
 
-  if (L !== undefined && (L < AG21_PARAM_LIMITS.L.min || L > AG21_PARAM_LIMITS.L.max))
-    errors.push(`出水管长度 L 应在 ${AG21_PARAM_LIMITS.L.min}-${AG21_PARAM_LIMITS.L.max} ${AG21_PARAM_LIMITS.L.unit} 范围内（${AG21_PARAM_LIMITS.L.ref}）`)
+  if (L !== undefined && (L < AG12_PARAM_LIMITS.L.min || L > AG12_PARAM_LIMITS.L.max))
+    errors.push(`出水管长度 L 应在 ${AG12_PARAM_LIMITS.L.min}-${AG12_PARAM_LIMITS.L.max} ${AG12_PARAM_LIMITS.L.unit} 范围内（${AG12_PARAM_LIMITS.L.ref}）`)
 
-  if (n !== undefined && (n < AG21_PARAM_LIMITS.n.min || n > AG21_PARAM_LIMITS.n.max))
-    errors.push(`曼宁粗糙系数 n 应在 ${AG21_PARAM_LIMITS.n.min}-${AG21_PARAM_LIMITS.n.max} 范围内（${AG21_PARAM_LIMITS.n.ref}）`)
+  if (n !== undefined && (n < AG12_PARAM_LIMITS.n.min || n > AG12_PARAM_LIMITS.n.max))
+    errors.push(`曼宁粗糙系数 n 应在 ${AG12_PARAM_LIMITS.n.min}-${AG12_PARAM_LIMITS.n.max} 范围内（${AG12_PARAM_LIMITS.n.ref}）`)
 
-  if (η_hyd !== undefined && (η_hyd < AG21_PARAM_LIMITS.η_hyd.min || η_hyd > AG21_PARAM_LIMITS.η_hyd.max))
-    errors.push(`水力效率 η_hyd 应在 ${AG21_PARAM_LIMITS.η_hyd.min}-${AG21_PARAM_LIMITS.η_hyd.max} 范围内（${AG21_PARAM_LIMITS.η_hyd.ref}）`)
+  if (η_hyd !== undefined && (η_hyd < AG12_PARAM_LIMITS.η_hyd.min || η_hyd > AG12_PARAM_LIMITS.η_hyd.max))
+    errors.push(`水力效率 η_hyd 应在 ${AG12_PARAM_LIMITS.η_hyd.min}-${AG12_PARAM_LIMITS.η_hyd.max} 范围内（${AG12_PARAM_LIMITS.η_hyd.ref}）`)
 
-  if (η_mot !== undefined && (η_mot < AG21_PARAM_LIMITS.η_mot.min || η_mot > AG21_PARAM_LIMITS.η_mot.max))
-    errors.push(`电机效率 η_mot 应在 ${AG21_PARAM_LIMITS.η_mot.min}-${AG21_PARAM_LIMITS.η_mot.max} 范围内（${AG21_PARAM_LIMITS.η_mot.ref}）`)
+  if (η_mot !== undefined && (η_mot < AG12_PARAM_LIMITS.η_mot.min || η_mot > AG12_PARAM_LIMITS.η_mot.max))
+    errors.push(`电机效率 η_mot 应在 ${AG12_PARAM_LIMITS.η_mot.min}-${AG12_PARAM_LIMITS.η_mot.max} 范围内（${AG12_PARAM_LIMITS.η_mot.ref}）`)
 
-  if (NPSH_r !== undefined && (NPSH_r < AG21_PARAM_LIMITS.NPSH_r.min || NPSH_r > AG21_PARAM_LIMITS.NPSH_r.max))
-    errors.push(`必需汽蚀余量 NPSH_r 应在 ${AG21_PARAM_LIMITS.NPSH_r.min}-${AG21_PARAM_LIMITS.NPSH_r.max} ${AG21_PARAM_LIMITS.NPSH_r.unit} 范围内（${AG21_PARAM_LIMITS.NPSH_r.ref}）`)
+  if (NPSH_r !== undefined && (NPSH_r < AG12_PARAM_LIMITS.NPSH_r.min || NPSH_r > AG12_PARAM_LIMITS.NPSH_r.max))
+    errors.push(`必需汽蚀余量 NPSH_r 应在 ${AG12_PARAM_LIMITS.NPSH_r.min}-${AG12_PARAM_LIMITS.NPSH_r.max} ${AG12_PARAM_LIMITS.NPSH_r.unit} 范围内（${AG12_PARAM_LIMITS.NPSH_r.ref}）`)
 
-  if (v_in !== undefined && (v_in < AG21_PARAM_LIMITS.v_in.min || v_in > AG21_PARAM_LIMITS.v_in.max))
-    errors.push(`进水管设计流速 v_in 应在 ${AG21_PARAM_LIMITS.v_in.min}-${AG21_PARAM_LIMITS.v_in.max} ${AG21_PARAM_LIMITS.v_in.unit} 范围内（${AG21_PARAM_LIMITS.v_in.ref}）`)
+  if (v_in !== undefined && (v_in < AG12_PARAM_LIMITS.v_in.min || v_in > AG12_PARAM_LIMITS.v_in.max))
+    errors.push(`进水管设计流速 v_in 应在 ${AG12_PARAM_LIMITS.v_in.min}-${AG12_PARAM_LIMITS.v_in.max} ${AG12_PARAM_LIMITS.v_in.unit} 范围内（${AG12_PARAM_LIMITS.v_in.ref}）`)
 
-  if (v_out !== undefined && (v_out < AG21_PARAM_LIMITS.v_out.min || v_out > AG21_PARAM_LIMITS.v_out.max))
-    errors.push(`出水管设计流速 v_out 应在 ${AG21_PARAM_LIMITS.v_out.min}-${AG21_PARAM_LIMITS.v_out.max} ${AG21_PARAM_LIMITS.v_out.unit} 范围内（${AG21_PARAM_LIMITS.v_out.ref}）`)
+  if (v_out !== undefined && (v_out < AG12_PARAM_LIMITS.v_out.min || v_out > AG12_PARAM_LIMITS.v_out.max))
+    errors.push(`出水管设计流速 v_out 应在 ${AG12_PARAM_LIMITS.v_out.min}-${AG12_PARAM_LIMITS.v_out.max} ${AG12_PARAM_LIMITS.v_out.unit} 范围内（${AG12_PARAM_LIMITS.v_out.ref}）`)
 
-  if (k_local !== undefined && (k_local < AG21_PARAM_LIMITS.k_local.min || k_local > AG21_PARAM_LIMITS.k_local.max))
-    errors.push(`局部损失系数 k_local 应在 ${AG21_PARAM_LIMITS.k_local.min}-${AG21_PARAM_LIMITS.k_local.max} 范围内（${AG21_PARAM_LIMITS.k_local.ref}）`)
+  if (k_local !== undefined && (k_local < AG12_PARAM_LIMITS.k_local.min || k_local > AG12_PARAM_LIMITS.k_local.max))
+    errors.push(`局部损失系数 k_local 应在 ${AG12_PARAM_LIMITS.k_local.min}-${AG12_PARAM_LIMITS.k_local.max} 范围内（${AG12_PARAM_LIMITS.k_local.ref}）`)
 
   return errors
 }
@@ -108,7 +108,7 @@ export function runAG12({
   const warnings = []
 
   // ── 参数校验 ──────────────────────────────────────────────
-  const validationErrors = validateAG21Params({
+  const validationErrors = validateAG12Params({
     Q_single, Z_stop, Z_discharge, L, n, η_hyd, η_mot, NPSH_r, v_in, v_out, k_local
   })
 

@@ -118,7 +118,7 @@ async function runCalculation() {
   }
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
   const ag2Result = runAG12(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // AG1-2 水泵选型
-  document.getElementById('card-ag12').innerHTML = renderAG12(ag2Result)
+  document.getElementById('card-ag12').innerHTML = renderAG21(ag2Result)
 
   // ── AG1-3: 管道尺寸计算 ─────────────────────────────────────────────
   if (ag2Result.valid !== false) {
@@ -133,7 +133,7 @@ async function runCalculation() {
       N:         ag00.N,                  // 工作泵台数
       H_total:   ag2Result.H_total,       // 总扬程（m）
       Z_stop:    ag1Result.Z_stop,        // 停泵水位（mPD）
-      H_s:       ag2Result.H_s,           // 淹没深度（m），来自AG2-1
+      H_s:       ag2Result.H_s,           // 淹没深度（m），来自AG1-2
       v_in:      parseFloat(document.getElementById('inp-v-in').value) || 1.0,
       v_out:     parseFloat(document.getElementById('inp-v-out').value) || 1.5,
       n:         parseFloat(document.getElementById('inp-n').value) || 0.013,
@@ -149,7 +149,7 @@ async function runCalculation() {
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
   const ag21 = runAG21(ag00.N, effectiveMotor, N_spare)
   ag21.DN_label = ag2Result.DN_outlet
-  document.getElementById('card-ag21').innerHTML = renderAG21(ag21)
+  document.getElementById('card-ag21').innerHTML = renderAG12(ag21)
 
   // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
   // AG3-1 期望从第三个参数解构 h_active, Z_stop, Z_start1, Z_alarm_high
@@ -160,10 +160,10 @@ async function runCalculation() {
     Z_start1:   ag1Result.Z_start1,
     Z_alarm_high: ag1Result.Z_alarm_high,
   }
-  runAG31(ag00.N, ag12, ag31Params, ag1Result.S, ag01.topology)
+  runAG31(ag00.N, ag21, ag31Params, ag1Result.S, ag01.topology)
 
-  // Update repair_zone hint from AG1-2 before reading AG4-1 params
-  updateRepairZoneHint(ag12)
+  // Update repair_zone hint from AG2-1 before reading AG4-1 params
+  updateRepairZoneHint(ag21)
 
   // ── AG4-1/AG4-2: 布局生成与评分 ─────────────────────────────────
   const ag41Variants = await runAG41()

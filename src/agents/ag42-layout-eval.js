@@ -2,9 +2,9 @@ import { scoreLayout } from '../layout/scorer.js'
 import { evaluateTemplate } from '../layout/placer.js'
 
 /**
- * AG4-2: Building Layout Evaluation
+ * AG4-3: Building Layout Evaluation
  *
- * Receives the raw layout variants from AG4-1, scores each one,
+ * Receives the raw layout variants from AG4-2, scores each one,
  * and returns them enriched with score, spaceEfficiency, and breakdown,
  * sorted best-first.
  *
