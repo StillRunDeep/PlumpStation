@@ -107,7 +107,7 @@ export function validateAG22Params(params) {
  * @param {number} [params.L=50] - 管长（m）
  * @returns {Object} 计算结果
  */
-export function runAG22({
+export function runAG13({
   Q_pump,      // 单泵设计流量（m³/s）
   Q,           // 泵站总流量（m³/h）
   N,           // 工作泵台数

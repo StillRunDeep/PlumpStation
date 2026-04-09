@@ -170,7 +170,7 @@ export function renderAG21(r) {
 }
 
 // AG1-3：管道尺寸计算
-export function renderAG22(r) {
+export function renderAG13(r) {
   const hasErrors = r.errors && r.errors.length > 0
   const hasWarnings = r.warnings && r.warnings.length > 0
   const status = hasErrors ? 'error' : hasWarnings ? 'warn' : 'pass'

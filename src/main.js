@@ -3,14 +3,14 @@ import './style.css'
 import { runAG00 } from './agents/ag00-validate.js'
 import { runAG01 } from './agents/ag01-topology.js'
 import { runAG11 } from './agents/ag11-pool-depth.js'
-import { runAG12 } from './agents/ag12-maintenance-room.js'
-import { runAG21 } from './agents/ag21-pump-spec.js'
-import { runAG22 } from './agents/ag22-pipe-sizing.js'
+import { runAG21 } from './agents/ag21-maintenance-room.js'
+import { runAG12 } from './agents/ag12-pump-spec.js'
+import { runAG13 } from './agents/ag13-pipe-sizing.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
 import { runAG42 } from './agents/ag42-layout-eval.js'
 
-import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21, renderAG22 } from './ui/results-panel.js'
+import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG13, renderAG21 } from './ui/results-panel.js'
 import { renderLayoutPanel } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
@@ -117,8 +117,8 @@ async function runCalculation() {
     NPSH_r:      parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
   }
   const motorOverride = parseFloat(document.getElementById('inp-motor').value)
-  const ag2Result = runAG21(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // ag21-pump-spec.js = AG2-1 水泵选型
-  document.getElementById('card-ag12').innerHTML = renderAG21(ag2Result)
+  const ag2Result = runAG12(ag2Params, isNaN(motorOverride) ? null : motorOverride)  // AG1-2 水泵选型
+  document.getElementById('card-ag12').innerHTML = renderAG12(ag2Result)
 
   // ── AG1-3: 管道尺寸计算 ─────────────────────────────────────────────
   if (ag2Result.valid !== false) {
@@ -141,15 +141,15 @@ async function runCalculation() {
       NPSH_r:    parseFloat(document.getElementById('inp-npsh-r').value) || 3.0,
       L:         parseFloat(document.getElementById('inp-pipe-len').value) || 50,
     }
-    const ag22Result = runAG22(ag22Params)
-    document.getElementById('card-ag13').innerHTML = renderAG22(ag22Result)
+    const ag22Result = runAG13(ag22Params)
+    document.getElementById('card-ag13').innerHTML = renderAG13(ag22Result)
   }
 
   // ── AG2-1: 泵房维护间尺寸计算 ─────────────────────────────────────────
   const effectiveMotor = isNaN(motorOverride) ? ag2Result.P_motor : motorOverride
-  const ag12 = runAG12(ag00.N, effectiveMotor, N_spare)
-  ag12.DN_label = ag2Result.DN_outlet
-  document.getElementById('card-ag21').innerHTML = renderAG12(ag12)
+  const ag21 = runAG21(ag00.N, effectiveMotor, N_spare)
+  ag21.DN_label = ag2Result.DN_outlet
+  document.getElementById('card-ag21').innerHTML = renderAG21(ag21)
 
   // ── AG3-1: SVG绘图 ───────────────────────────────────────────────
   // AG3-1 期望从第三个参数解构 h_active, Z_stop, Z_start1, Z_alarm_high

@@ -91,7 +91,7 @@ export function validateAG21Params(params) {
   return errors
 }
 
-export function runAG21({
+export function runAG12({
   Q_single,      // 单泵设计流量（m³/h）
   Z_stop,         // 停泵水位（mPD）
   Z_discharge,   // 排放口标高（mPD）
