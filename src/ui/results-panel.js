@@ -127,6 +127,47 @@ export function renderMaintenanceRoom(r) {
   `
 }
 
+// 泵型目录选型结果区块
+function renderCatalogMatch(r) {
+  const matches = r.catalogMatches?.length > 0 ? r.catalogMatches : r.catalogMatchesTolerant
+  const isTolerant = r.catalogIsTolerant
+
+  if (!matches || matches.length === 0) {
+    return `
+    <div class="result-summary error" style="margin-top:8px">
+      <div style="font-weight:700;margin-bottom:6px">✘ 目录中无匹配泵型</div>
+      ${kvRow('设计流量 Q', fmt(r.Q_pump_ls, 1) + ' l/s (' + fmt(r.Q_pump_ls * 3.6, 0) + ' m³/h)')}
+      ${kvRow('所需扬程 H', fmt(r.H_total, 2) + ' m')}
+      <div style="font-size:11px;color:#999;margin-top:4px">请联系厂商确认或调整设计参数</div>
+    </div>`
+  }
+
+  const m = matches[0]
+  const p = m.pump
+  const cls = isTolerant ? 'warn' : 'pass'
+  const icon = isTolerant ? '⚠' : '✔'
+  const title = isTolerant ? '选型结果（扬程偏差在 ISO 9906 2B ±3% 范围内）' : '选型结果'
+
+  return `
+    <div class="result-summary ${cls}" style="margin-top:8px">
+      <div style="font-weight:700;margin-bottom:8px">${icon} ${title}</div>
+      <div style="font-weight:600;font-size:11px;color:#666;margin-bottom:4px">设计参数</div>
+      ${kvRow('单泵设计流量 Q', fmt(r.Q_pump_ls, 1) + ' l/s (' + fmt(r.Q_pump_ls * 3.6, 0) + ' m³/h)')}
+      ${kvRow('系统总扬程 H', fmt(r.H_total, 2) + ' m')}
+      <div style="font-weight:600;font-size:11px;color:#666;margin:8px 0 4px">选型实际参数</div>
+      ${kvRow('制造商 / 系列', p.manufacturer + ' · ' + p.series)}
+      ${kvRow('型号', p.model)}
+      ${kvRow('曲线扬程 H', fmt(m.H_m, 2) + ' m')}
+      ${kvRow('实际效率 η', fmt(m.eta_pct, 1) + ' %')}
+      ${kvRow('实际轴功率 P', fmt(m.P_kW, 1) + ' kW')}
+      ${m.NPSH_m !== null ? kvRow('NPSH₃%', fmt(m.NPSH_m, 2) + ' m') : ''}
+      <div style="font-weight:600;font-size:11px;color:#666;margin:8px 0 4px">电机</div>
+      ${kvRow('目录电机功率', p.motor.power_kW + ' kW')}
+      ${kvRow('电机型号', p.motor.manufacturer + ' ' + p.motor.modelNo + ' · ' + p.motor.poles + ' 极')}
+      ${kvRow('转速', p.motor.speed_rpm + ' rpm')}
+    </div>`
+}
+
 // AG12：水泵计算及选型 → 渲染 Q_pump, H_total, P_shaft, NPSH 等
 export function renderPumpSpec(r) {
   const hasErrors = r.errors && r.errors.length > 0
@@ -166,6 +207,7 @@ export function renderPumpSpec(r) {
     <div class="result-summary ${effClass}" style="margin-top:8px;font-size:12px">
       <strong>NPSH校验（R-NPSH-01）：</strong>${effMsg}
     </div>
+    ${renderCatalogMatch(r)}
     ` : ''}
   `
 }

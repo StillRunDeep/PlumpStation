@@ -1,4 +1,5 @@
 import { selectDN, fmt, stepRow, validateParams } from '../utils.js'
+import { findMatchingPumps } from '../data/pump-catalog.js'
 
 /**
  * AG1-2：水泵选型计算
@@ -221,6 +222,15 @@ export function runPumpSpec({
 
   if (!NPSH_ok) warnings.push(`NPSH校验不通过：NPSH_a(${fmt(NPSH_a)}) < NPSH_r+0.5(${fmt(NPSH_r+0.5)})`)
 
+  // ── 泵型目录匹配 ──────────────────────────────────────────
+  // Q_pump (m³/s) → Q_pump_ls (l/s)
+  const Q_pump_ls = Q_pump * 1000
+  const catalogMatches = findMatchingPumps(Q_pump_ls, H_total)
+  const catalogMatchesTolerant = catalogMatches.length === 0
+    ? findMatchingPumps(Q_pump_ls, H_total, 0.03)
+    : []
+  const catalogIsTolerant = catalogMatches.length === 0 && catalogMatchesTolerant.length > 0
+
   // ── 输出结果 ──────────────────────────────────────────────
 
   return {
@@ -248,6 +258,11 @@ export function runPumpSpec({
       v_out:       { value: v_out,       unit: 'm/s',   ref: '经济流速' },
       k_local:     { value: k_local,     unit: '',      ref: '工程惯例' },
     },
+    // 泵型目录匹配结果
+    Q_pump_ls,
+    catalogMatches,
+    catalogMatchesTolerant,
+    catalogIsTolerant,
     // 输出给下游
     rows,
   }
