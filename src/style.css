@@ -474,6 +474,19 @@ details .adv-grid { margin-top: 12px; }
 #btn-ag41-more:hover:not(:disabled) { background: #145a42; }
 #btn-ag41-more:disabled { opacity: 0.6; cursor: not-allowed; }
 
+#btn-ag41-reset {
+  padding: 4px 12px;
+  background: #5a4a1a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+#btn-ag41-reset:hover:not(:disabled) { background: #463a14; }
+#btn-ag41-reset:disabled { opacity: 0.6; cursor: not-allowed; }
+
 /* ── AG4-1 inline notification ── */
 .ag41-notify {
   padding: 8px 14px;
