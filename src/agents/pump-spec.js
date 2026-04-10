@@ -89,12 +89,12 @@ export function runPumpSpec({
   // ── 设计参数标注 ──────────────────────────────────────────
   rows.push(stepRow('═══════════ 设计参数 ═══════════', '', '', ''))
   rows.push(stepRow('出水管长度 L', '工程惯例默认值', L, 'm'))
-  rows.push(stepRow('曼宁粗糙系数 n', '手册第8.3节(混凝土管)', n, 's/m^(1/3)'))
-  rows.push(stepRow('水力效率 η_hyd', '手册第14.6节要求≥0.82', η_hyd, ''))
-  rows.push(stepRow('电机效率 η_mot', '手册第14.6节要求≥0.93', η_mot, ''))
-  rows.push(stepRow('必需汽蚀余量 NPSH_r', '工程惯例典型值', NPSH_r, 'm'))
-  rows.push(stepRow('进水管设计流速 v_in', '手册第8.3节(防汽蚀)', v_in, 'm/s'))
-  rows.push(stepRow('出水管设计流速 v_out', '经济流速', v_out, 'm/s'))
+  rows.push(stepRow('曼宁粗糙系数 n', '高级设置，手册规定 0.010~0.020 s/m^(1/3)', n, 's/m^(1/3)'))
+  rows.push(stepRow('水力效率 η_hyd', '高级设置，手册规定 ≥0.82', η_hyd, ''))
+  rows.push(stepRow('电机效率 η_mot', '高级设置，手册规定 ≥0.93', η_mot, ''))
+  rows.push(stepRow('必需汽蚀余量 NPSH_r', '高级设置，惯例 3~5 m', NPSH_r, 'm'))
+  rows.push(stepRow('进水管设计流速 v_in', '高级设置，手册规定 0.6~1.5 m/s', v_in, 'm/s'))
+  rows.push(stepRow('出水管设计流速 v_out', '高级设置，手册规定 1.0~2.5 m/s', v_out, 'm/s'))
   rows.push(stepRow('局部损失系数 k_local', '工程惯例默认值', k_local, ''))
 
   // ── 步骤4：水泵选型计算 ───────────────────────────────────
@@ -216,7 +216,7 @@ export function runPumpSpec({
   const NPSH_ok = NPSH_a >= NPSH_r + 0.5
 
   rows.push(stepRow('═══════════ NPSH校验 ═══════════', '', '', ''))
-  rows.push(stepRow('必需汽蚀余量 NPSH_r', '设备参数/工程惯例', NPSH_r, 'm'))
+  rows.push(stepRow('必需汽蚀余量 NPSH_r', '高级设置，惯例 3~5 m', NPSH_r, 'm'))
   rows.push(stepRow('有效汽蚀余量 NPSH_a', `10.33-0.5+H_s-0.2 =`, fmt(NPSH_a, 2), 'm', '手册第14.2.3节'))
   rows.push(stepRow('NPSH安全余量要求', 'NPSH_a ≥ NPSH_r + 0.5', NPSH_ok ? '✓ 满足' : '✗ 不满足', ''))
 
@@ -230,6 +230,23 @@ export function runPumpSpec({
     ? findMatchingPumps(Q_pump_ls, H_total, 0.03)
     : []
   const catalogIsTolerant = catalogMatches.length === 0 && catalogMatchesTolerant.length > 0
+
+  // ── 泵安装尺寸（a×b×h）───────────────────────────────────
+  const displayMatches = catalogMatches.length > 0 ? catalogMatches : catalogMatchesTolerant
+  if (displayMatches.length > 0) {
+    rows.push(stepRow('═══════════ 泵安装尺寸 ═══════════', '', '', ''))
+    for (const match of displayMatches) {
+      const { pump } = match
+      const { dimensions_mm } = pump
+      const h_total = (dimensions_mm.h1 || 0) + (dimensions_mm.h2 || 0)
+      rows.push(stepRow(
+        `${pump.series} ${pump.model.split(' ').pop()}`,
+        `a×b×h`,
+        `${dimensions_mm.a}×${dimensions_mm.b}×${h_total}`,
+        'mm'
+      ))
+    }
+  }
 
   // ── 输出结果 ──────────────────────────────────────────────
 
@@ -249,6 +266,7 @@ export function runPumpSpec({
     NPSH_r, NPSH_a, NPSH_ok, H_s,
     // 设计参数（带依据标注）
     designParams: {
+      Z_discharge: { value: Z_discharge, unit: 'mPD',   ref: '排放口标高' },
       L:           { value: L,           unit: 'm',     ref: '工程惯例' },
       n:           { value: n,           unit: 's/m^(1/3)', ref: '手册第8.3节' },
       η_hyd:       { value: η_hyd,       unit: '',      ref: '手册第14.6节≥0.82' },
