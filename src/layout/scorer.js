@@ -23,8 +23,8 @@ function floorFunctionalArea(placements) {
  * @returns {number} 0~1
  */
 export function computeSpaceEfficiency(result) {
-  const { template, groundPlacements, level1Placements } = result
-  const floorArea = template.buildingW * template.buildingD
+  const { buildingW, buildingD, groundPlacements, level1Placements } = result
+  const floorArea = buildingW * buildingD
   const groundEff  = floorFunctionalArea(groundPlacements)  / floorArea
   const level1Eff  = floorFunctionalArea(level1Placements)  / floorArea
   return (groundEff + level1Eff) / 2
@@ -35,17 +35,17 @@ export function computeSpaceEfficiency(result) {
  * Returns { score, spaceEfficiency, efficiencyScore, breakdown }.
  */
 export function scoreLayout(result) {
-  const { template, placements } = result
+  const { buildingW, buildingD, placements } = result
   const breakdown = { base: 10000, footprint: 0, adjacency: 0, corridor: 0, trafo: 0, fanRoom: 0, efficiency: 0, violations: 0 }
   let score = breakdown.base
 
   // 1. Footprint penalty (per m²)
-  const areaMm2 = template.buildingW * template.buildingD
+  const areaMm2 = buildingW * buildingD
   breakdown.footprint = -Math.round((areaMm2 / 1e6) * 8)
   score += breakdown.footprint
 
   // 2. Trafo touching east or west exterior wall → +20 each
-  const bW = template.buildingW
+  const bW = buildingW
   ;['trafo1', 'trafo2'].forEach(id => {
     const p = placements[id]
     if (!p) return

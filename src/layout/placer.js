@@ -47,13 +47,13 @@ export const CONSTRAINT_CHECKS = {
 
   crane15_cover: (id, placements, template) => {
     const p = placements[id]
-    if (!p) return false
+    if (!p || !template.crane15) return true // If crane zone isn't defined, constraint is trivially satisfied
     return contains(template.crane15, p)
   },
 
   crane5_cover: (id, placements, template) => {
     const p = placements[id]
-    if (!p) return false
+    if (!p || !template.crane5) return true // If crane zone isn't defined, constraint is trivially satisfied
     return contains(template.crane5, p)
   },
 
@@ -74,7 +74,7 @@ export const CONSTRAINT_CHECKS = {
  */
 export function evaluateTemplate(template) {
   console.log('evaluateTemplate called with template:', template);
-  const allPlacements = { ...template.ground, ...template.level1 }
+  const allPlacements = { ...template.groundPlacements, ...template.level1Placements }
   console.log('allPlacements before placeDoors:', allPlacements);
   const violations = []
 
@@ -102,13 +102,11 @@ export function evaluateTemplate(template) {
   const doors = placeDoors(allPlacements, template);
 
   return {
+    ...template, // Spread the original template properties
     feasible: violations.length === 0,
     placements: allPlacements,
-    groundPlacements: template.ground,
-    level1Placements: template.level1,
     violations,
     adjacency,
     doors, // Add doors to the returned object
-    template,
   }
 }

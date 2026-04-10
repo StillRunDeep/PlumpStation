@@ -167,6 +167,9 @@ details .adv-grid { margin-top: 12px; }
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh; /* Limit max height to avoid overly long cards */
 }
 .card-header {
   padding: 13px 18px;
@@ -176,15 +179,23 @@ details .adv-grid { margin-top: 12px; }
   display: flex;
   align-items: center;
   gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 .card-header .agent-label { font-size: 12px; opacity: .8; }
 .card-header .badge {
-  margin-left: auto;
   font-size: 11px;
   padding: 2px 9px;
   border-radius: 20px;
   font-weight: 700;
   background: rgba(255,255,255,0.25);
+}
+
+.card-header-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
 }
 
 .card-ag01 .card-header { background: #7d3c98; }
@@ -202,6 +213,13 @@ details .adv-grid { margin-top: 12px; }
 #svg-ag31:active { cursor: grabbing; }
 #svg-ag41 { display: block; width: 100%; height: 560px; cursor: grab; background: #f4f6f8; }
 #svg-ag41:active { cursor: grabbing; }
+
+svg.zoom-active {
+  outline: 2px solid #2e86c1;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
 .svg-zoom-btn {
   background: rgba(255,255,255,0.2);
   border: 1px solid rgba(255,255,255,0.45);
@@ -241,7 +259,7 @@ details .adv-grid { margin-top: 12px; }
 #topology-editor-wrap { padding-top: 10px; }
 #topology-editor-wrap svg { height: 250px; }
 
-.card-body { padding: 16px 18px; }
+.card-body { padding: 16px 18px; overflow-y: auto; }
 
 .steps-table {
   width: 100%;
@@ -460,32 +478,18 @@ details .adv-grid { margin-top: 12px; }
 }
 
 /* ── "更多方案" button ── */
-#btn-ag41-more {
-  margin-left: auto;
+#btn-ag41-more, #btn-ag41-reset {
   padding: 4px 12px;
-  background: #1a6b50;
+  background: rgba(255,255,255,0.15);
   color: #fff;
-  border: none;
+  border: 1px solid rgba(255,255,255,0.4);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-#btn-ag41-more:hover:not(:disabled) { background: #145a42; }
-#btn-ag41-more:disabled { opacity: 0.6; cursor: not-allowed; }
-
-#btn-ag41-reset {
-  padding: 4px 12px;
-  background: #5a4a1a;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.2s, opacity 0.2s;
-}
-#btn-ag41-reset:hover:not(:disabled) { background: #463a14; }
-#btn-ag41-reset:disabled { opacity: 0.6; cursor: not-allowed; }
+#btn-ag41-more:hover:not(:disabled), #btn-ag41-reset:hover:not(:disabled) { background: rgba(255,255,255,0.3); }
+#btn-ag41-more:disabled, #btn-ag41-reset:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── AG4-1 inline notification ── */
 .ag41-notify {

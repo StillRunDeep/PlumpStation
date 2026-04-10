@@ -10,12 +10,18 @@
 export function initSvgZoomPan(svg, vw, vh, btnIds = {}) {
   svg._zpclean && svg._zpclean()
   let vb = { x: 0, y: 0, w: vw, h: vh }
+  let isZoomActive = false;
+
+  // Keep track of all zoomable SVGs to deactivate others
+  if (!window._zoomableSvgs) window._zoomableSvgs = new Set();
+  window._zoomableSvgs.add(svg);
 
   function applyVB() {
     svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`)
   }
 
   function onWheel(e) {
+    if (!isZoomActive) return;
     e.preventDefault()
     const f = e.deltaY > 0 ? 1.12 : 0.89
     const rect = svg.getBoundingClientRect()
@@ -28,7 +34,20 @@ export function initSvgZoomPan(svg, vw, vh, btnIds = {}) {
   }
 
   let drag = false, last = { x: 0, y: 0 }
-  function onDown(e) { drag = true; last = { x: e.clientX, y: e.clientY }; svg.style.cursor = 'grabbing'; e.preventDefault() }
+  function onDown(e) {
+    // Activate this SVG for zooming
+    for (const otherSvg of window._zoomableSvgs) {
+        otherSvg.classList.remove('zoom-active');
+        otherSvg._zp_deactivate && otherSvg._zp_deactivate();
+    }
+    isZoomActive = true;
+    svg.classList.add('zoom-active');
+
+    drag = true;
+    last = { x: e.clientX, y: e.clientY };
+    svg.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
   function onUp()    { drag = false; svg.style.cursor = 'grab' }
   function onMove(e) {
     if (!drag) return
@@ -118,5 +137,11 @@ export function initSvgZoomPan(svg, vw, vh, btnIds = {}) {
     if (zIn)  zIn.removeEventListener('click', doZin)
     if (zOut) zOut.removeEventListener('click', doZout)
     if (zRst) zRst.removeEventListener('click', doRst)
+    window._zoomableSvgs.delete(svg);
+  }
+
+  svg._zp_deactivate = () => {
+    isZoomActive = false;
+    svg.classList.remove('zoom-active');
   }
 }
