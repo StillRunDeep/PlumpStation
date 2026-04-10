@@ -215,6 +215,21 @@ document.getElementById('btn-ag41-more').addEventListener('click', async () => {
   }
 })
 
+document.getElementById('btn-ag41-reset').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-ag41-reset')
+  btn.disabled = true
+  btn.textContent = '生成中…'
+  try {
+    const newRaw = await runAG41()
+    const variants = runAG42(newRaw)
+    renderLayoutPanel(variants)
+    showAg41Notify('已重新生成 9 个方案', true)
+  } finally {
+    btn.disabled = false
+    btn.textContent = '重制方案'
+  }
+})
+
 document.querySelectorAll('.input-panel input').forEach(el => {
   el.addEventListener('keydown', e => { if (e.key === 'Enter') runCalculation() })
 })

@@ -193,6 +193,8 @@ export function renderLayoutPanel(variants) {
   document.getElementById('card-ag41-wrap').hidden = false
   const moreBtn = document.getElementById('btn-ag41-more')
   if (moreBtn) moreBtn.hidden = false
+  const resetBtn = document.getElementById('btn-ag41-reset')
+  if (resetBtn) resetBtn.hidden = false
 }
 
 // ── Detail view ───────────────────────────────────────────────────────
