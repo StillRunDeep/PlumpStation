@@ -8,10 +8,10 @@ import { runAG21 } from './agents/ag21-pump-spec.js'
 import { runAG22 } from './agents/ag22-pipe-sizing.js'
 import { runAG31 } from './agents/ag31-drawing.js'
 import { runAG41 } from './agents/ag41-building-layout.js'
-import { runAG42 } from './agents/ag42-layout-eval.js'
+import { runAG42, mergeVariants } from './agents/ag42-layout-eval.js'
 
 import { renderAG00, renderAG01, renderAG11, renderAG12, renderAG21, renderAG22 } from './ui/results-panel.js'
-import { renderLayoutPanel } from './ui/layout-panel.js'
+import { renderLayoutPanel, getVariants, showAg41Notify } from './ui/layout-panel.js'
 import { initTopologyEditor, setTopologyFromN, getCurrentTopology } from './ui/topology-editor.js'
 
 let _lastTopoN     = null
@@ -195,6 +195,25 @@ document.getElementById('inp-N').addEventListener('input', _updateTopo)
 document.getElementById('inp-N-spare').addEventListener('input', _updateTopo)
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
+
+document.getElementById('btn-ag41-more').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-ag41-more')
+  btn.disabled = true
+  btn.textContent = '生成中…'
+  try {
+    const newRaw = await runAG41()
+    const { variants, improved } = mergeVariants(getVariants(), newRaw)
+    renderLayoutPanel(variants)
+    if (improved) {
+      showAg41Notify('发现更优方案，排名已更新', true)
+    } else {
+      showAg41Notify('新生成的 9 个方案得分均未超过现有方案，当前排名未变', false)
+    }
+  } finally {
+    btn.disabled = false
+    btn.textContent = '更多方案'
+  }
+})
 
 document.querySelectorAll('.input-panel input').forEach(el => {
   el.addEventListener('keydown', e => { if (e.key === 'Enter') runCalculation() })
