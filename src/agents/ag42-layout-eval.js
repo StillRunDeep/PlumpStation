@@ -41,3 +41,34 @@ export function runAG42(rawVariants) {
 
   return finalVariants.sort((a, b) => b.score - a.score); // 最终再次排序确保最高分在前
 }
+
+/**
+ * Merge existing scored variants with newly generated raw templates.
+ * Combines 18 candidates, re-ranks, keeps top 9.
+ *
+ * @param {Array} existingVariants  Already-scored variants from a previous run
+ * @param {Array} newRawTemplates   Raw template objects from runAG41()
+ * @returns {{ variants: Array, improved: boolean }}
+ *   variants  – top-9 sorted best-first
+ *   improved  – true if at least one new variant made it into the top 9
+ */
+export function mergeVariants(existingVariants, newRawTemplates) {
+  const newScored = newRawTemplates
+    .map(template => evaluateTemplate(template))
+    .map(evaluated => {
+      const { score, spaceEfficiency, efficiencyScore, breakdown } = scoreLayout(evaluated)
+      return { ...evaluated, score, spaceEfficiency, efficiencyScore, breakdown, _isNew: true }
+    })
+
+  const combined = [...existingVariants, ...newScored]
+  const feasible   = combined.filter(v => v.violations.length === 0).sort((a, b) => b.score - a.score)
+  const unfeasible = combined.filter(v => v.violations.length > 0).sort((a, b) => b.score - a.score)
+
+  const top9 = [...feasible, ...unfeasible.slice(0, Math.max(0, 9 - feasible.length))].slice(0, 9)
+  top9.sort((a, b) => b.score - a.score)
+
+  const improved = top9.some(v => v._isNew)
+  top9.forEach(v => delete v._isNew)
+
+  return { variants: top9, improved }
+}

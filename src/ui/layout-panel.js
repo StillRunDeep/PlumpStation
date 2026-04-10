@@ -191,6 +191,8 @@ export function renderLayoutPanel(variants) {
   // Show first variant detail
   selectVariant(0)
   document.getElementById('card-ag41-wrap').hidden = false
+  const moreBtn = document.getElementById('btn-ag41-more')
+  if (moreBtn) moreBtn.hidden = false
 }
 
 // ── Detail view ───────────────────────────────────────────────────────
@@ -236,4 +238,18 @@ window._ag41ConfirmVariant = function (idx) {
 
 export function getSelectedVariant() {
   return _variants[_selectedIdx] || null
+}
+
+export function getVariants() {
+  return _variants
+}
+
+export function showAg41Notify(msg, isImproved) {
+  const el = document.getElementById('ag41-notify')
+  if (!el) return
+  el.textContent = msg
+  el.className = 'ag41-notify ' + (isImproved ? 'ag41-notify--ok' : 'ag41-notify--warn')
+  el.hidden = false
+  clearTimeout(el._hideTimer)
+  el._hideTimer = setTimeout(() => { el.hidden = true }, 4000)
 }
