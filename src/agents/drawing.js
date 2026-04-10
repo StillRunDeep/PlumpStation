@@ -1,9 +1,9 @@
 import { fmt } from '../utils.js'
 import { _r, _l, _t, _poly, _dh, _dv } from '../render/svg-helpers.js'
 import { initSvgZoomPan } from '../render/zoom-pan.js'
-import { topologyToAG31Params } from './ag01-topology.js'
+import { topologyToAG31Params } from './topology.js'
 
-export function runAG31(N, ag12, ag21, S, topology = null) {
+export function runDrawing(N, ag12, ag21, S, topology = null) {
   const { L, W, d_spacing, e_wall, w_pump, d_pump, N_total } = ag12
   const { h_active: h_pool, Z_stop: stopLevel, Z_start1: startLevel, Z_alarm_high: alarmLevel } = ag21
 
@@ -15,8 +15,12 @@ export function runAG31(N, ag12, ag21, S, topology = null) {
     topoParams.pumpsInOrder.forEach((p, idx) => { pumpRoomMap[idx] = p.roomId })
   }
 
+  // 集水池长度：取维护间长度与估算长度较大值
+  // 估算长度 = sqrt(S × 1.5)，其中1.5为长宽比经验系数（避免集水池过窄）
   const L_pool = Math.max(L, Math.sqrt(S * 1.5))
   const D_pool = S / L_pool
+  // 泵房层高：取水泵吸上高度×20%+1.0m与3.0m的较大值
+  // 0.2为吸上高度占比经验值，1.0m为结构最小余量
   const room_H = Math.max(3.0, h_pool * 0.2 + 1.0)
 
   const VW = 1080, VH = 580

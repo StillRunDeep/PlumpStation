@@ -8,7 +8,7 @@ import {
   addDevice, removeDevice, moveDevice, moveDeviceToRoom,
   addEdge, removeEdge,
   FIXED_NODES,
-} from '../agents/ag01-topology.js'
+} from '../agents/topology.js'
 
 // ── 模块状态 ─────────────────────────────────────────────────────────
 let _topology     = null

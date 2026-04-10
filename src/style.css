@@ -189,11 +189,10 @@ details .adv-grid { margin-top: 12px; }
 
 .card-ag01 .card-header { background: #7d3c98; }
 .card-ag00 .card-header { background: var(--color-ag00); }
-.card-ag11 .card-header { background: var(--color-ag11); }
-.card-ag12 .card-header { background: var(--color-ag12); }
-.card-ag21 .card-header { background: var(--color-ag21); }
-.card-ag22 .card-header { background: var(--color-ag22); }
-.card-ag13 .card-header { background: var(--color-ag13); }
+.card-pool-depth .card-header { background: var(--color-ag11); }
+.card-pump-spec .card-header { background: var(--color-ag12); }
+.card-maintenance-room .card-header { background: var(--color-ag21); }
+.card-pipe-sizing .card-header { background: var(--color-ag13); }
 .card-ag31 .card-header { background: #117a65; }
 .card-ag41 .card-header { background: var(--color-ag41); }
 .card-ag31-wrap { grid-column: 1 / -1; }

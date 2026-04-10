@@ -2,9 +2,9 @@ import { generateTemplateA } from '../layout/grower.js'
 import { getDefaultUserParams, getUserConfirmedParams } from '../layout/user-params.js'
 
 /**
- * AG4-1: Building Space Layout Generator
+ * AG4-2: Building Space Layout Generator
  *
- * Scoring and ranking is handled by AG4-2 (ag42-layout-eval.js).
+ * Scoring and ranking is handled by AG4-3 (ag42-layout-eval.js).
  *
  * @returns {Promise<Array>} unsorted layout variants
  */
