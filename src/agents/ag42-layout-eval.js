@@ -70,5 +70,5 @@ export function mergeVariants(existingVariants, newRawTemplates) {
   const improved = top9.some(v => v._isNew)
   top9.forEach(v => delete v._isNew)
 
-  return { variants: top9, improved }
+  return { variants: top9, improved, newScored }
 }

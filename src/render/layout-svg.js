@@ -88,6 +88,17 @@ export function renderLayoutSVG(variant, vw, vh, opts = {}) {
     }
   }
 
+  // Doors
+  if (variant.doors) {
+    for (const door of variant.doors) {
+      const doorW = door.w === 0 ? 4 : door.w * ps;
+      const doorH = door.d === 0 ? 4 : door.d * ps;
+      const doorX = ox + (door.x * ps) - (doorW/2);
+      const doorY = oy + (door.y * ps) - (doorH/2);
+      s += _r(doorX, doorY, doorW, doorH, '#e67e22', 'none');
+    }
+  }
+
   // Overall dimension annotations
   if (showDims) {
     const bx1 = ox, bx2 = ox + buildingW * ps
@@ -155,6 +166,20 @@ export function renderLayoutSVGDual(variant, vw, vh) {
         const labelSz = Math.max(7, Math.min(10, rw / (def.label.length * 0.7)))
         s += _t(rx + rw / 2, ry + rd / 2 + 3, def.label.slice(0, Math.floor(rw / 7)), labelSz, '#2c3e50')
       }
+    }
+
+    // Doors for this floor
+    const floorDoors = (variant.doors || []).filter(d => {
+        const room = placements[d.rooms[0]] || placements[d.rooms[1]];
+        return !!room;
+    });
+
+    for (const door of floorDoors) {
+        const doorW = door.w === 0 ? 3 : door.w * ps;
+        const doorH = door.d === 0 ? 3 : door.d * ps;
+        const doorX = ox + (door.x * ps) - (doorW/2);
+        const doorY = oy + (door.y * ps) - (doorH/2);
+        s += _r(doorX, doorY, doorW, doorH, '#d35400', 'none');
     }
 
     // Floor label

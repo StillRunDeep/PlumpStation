@@ -199,24 +199,61 @@ document.getElementById('inp-N-spare').addEventListener('input', _updateTopo)
 
 document.getElementById('btn-calc').addEventListener('click', runCalculation)
 
-document.getElementById('btn-ag41-more').addEventListener('click', async () => {
-  const btn = document.getElementById('btn-ag41-more')
-  btn.disabled = true
-  btn.textContent = '生成中…'
-  try {
-    const newRaw = await runAG41()
-    const { variants, improved } = mergeVariants(getVariants(), newRaw)
-    renderLayoutPanel(variants)
-    if (improved) {
-      showAg41Notify('发现更优方案，排名已更新', true)
-    } else {
-      showAg41Notify('新生成的 9 个方案得分均未超过现有方案，当前排名未变', false)
+let isGeneratingLayouts = false;
+let generationReqId = null;
+
+document.getElementById('btn-ag41-more').addEventListener('click', () => {
+  const btn = document.getElementById('btn-ag41-more');
+
+  if (isGeneratingLayouts) {
+    // Stop generation
+    isGeneratingLayouts = false;
+    if (generationReqId) {
+      cancelAnimationFrame(generationReqId);
+      generationReqId = null;
     }
-  } finally {
-    btn.disabled = false
-    btn.textContent = '更多方案'
+    btn.textContent = '生成方案';
+    showAg41Notify('已停止持续生成', false);
+  } else {
+    // Start generation
+    isGeneratingLayouts = true;
+    btn.textContent = '停止';
+
+    const generationLoop = async () => {
+      if (!isGeneratingLayouts) return;
+
+      try {
+        const newRaw = await runAG41();
+        const { variants, improved, newScored } = mergeVariants(getVariants(), newRaw);
+        renderLayoutPanel(variants);
+
+        const maxNewScore = Math.max(...newScored.map(v => v.score));
+        const currentTopScore = variants[0]?.score || 0;
+
+        if (improved) {
+          showAg41Notify(`发现更优方案，排名已更新！新方案最高分: ${maxNewScore}`, true);
+        } else {
+          showAg41Notify(`未发现更优方案 (当前最高: ${currentTopScore} / 本轮最高: ${maxNewScore})`, false);
+        }
+      } catch (error) {
+        console.error("Error during layout generation loop:", error);
+        showAg41Notify('生成新方案时出错', false);
+        // Stop the loop on error
+        isGeneratingLayouts = false;
+        btn.textContent = '生成方案';
+        return;
+      }
+
+      // Continue the loop
+      if (isGeneratingLayouts) {
+        generationReqId = requestAnimationFrame(generationLoop);
+      }
+    };
+
+    // Kick off the first iteration
+    generationReqId = requestAnimationFrame(generationLoop);
   }
-})
+});
 
 document.getElementById('btn-ag41-reset').addEventListener('click', async () => {
   const btn = document.getElementById('btn-ag41-reset')

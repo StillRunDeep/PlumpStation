@@ -214,13 +214,15 @@ function findFallbackExpansion(grid, roomId, rng) {
 
 function expandRooms(grid, rooms, rng) {
     let iterations = 0;
-    let growingRooms = rooms.map(r => ({ ...r, currentArea: r.id in grid.roomData ? GRID_SIZE * GRID_SIZE : 0 }));
+    // currentArea is now in grid cell counts
+    let growingRooms = rooms.map(r => ({ ...r, currentArea: r.id in grid.roomData ? 1 : 0 }));
 
     while (iterations < MAX_EXPANSION_ITERATIONS) {
-        let activeRooms = growingRooms.filter(room => room.currentArea < room.targetArea);
+        let activeRooms = growingRooms.filter(room => room.currentArea < room.targetGridCount);
         if (activeRooms.length === 0) break;
 
-        activeRooms.sort((a, b) => (a.currentArea / a.targetArea) - (b.currentArea / b.targetArea));
+        // Sort by completion ratio
+        activeRooms.sort((a, b) => (a.currentArea / a.targetGridCount) - (b.currentArea / b.targetGridCount));
 
         let growthHappenedThisCycle = false;
 
@@ -237,9 +239,9 @@ function expandRooms(grid, rooms, rng) {
 
             if (expansionCells && expansionCells.length > 0) {
                 for (const cell of expansionCells) {
-                    if (roomToGrow.currentArea < roomToGrow.targetArea) {
+                    if (roomToGrow.currentArea < roomToGrow.targetGridCount) {
                         grid.addRoomCell(roomToGrow.id, cell.x, cell.y);
-                        roomToGrow.currentArea += GRID_SIZE * GRID_SIZE;
+                        roomToGrow.currentArea++; // Increment by 1 grid cell
                     } else {
                         break;
                     }
@@ -248,6 +250,7 @@ function expandRooms(grid, rooms, rng) {
                 break;
             }
         }
+
 
         if (!growthHappenedThisCycle) {
             console.warn("Expansion stuck. No rooms could grow.");
@@ -262,13 +265,56 @@ function expandRooms(grid, rooms, rng) {
     }
 }
 
-function finalizeLayout(grid, rooms) {
-  const layout = { ground: {}, level1: {} };
-  console.log("Finalizing layout. Rooms to process:", rooms.length);
+function fillGaps(grid, rooms) {
+    const emptyCells = [];
+    for (let y = 0; y < grid.height; y++) {
+        for (let x = 0; x < grid.width; x++) {
+            if (grid.getCell(x, y) === 0) {
+                emptyCells.push({ x, y });
+            }
+        }
+    }
 
-  for (const room of rooms) {
-    const bbox = grid.getBoundingBox(room.id);
-    console.log(`Processing room: ${room.id}`, bbox);
+    if (emptyCells.length === 0) return;
+    console.log(`Filling ${emptyCells.length} gap cells...`);
+
+    const roomSizes = {};
+    for (const room of rooms) {
+        roomSizes[room.id] = (grid.roomData[room.id] || []).length;
+    }
+
+    for (const cell of emptyCells) {
+        const neighbors = [
+            { x: cell.x + 1, y: cell.y }, { x: cell.x - 1, y: cell.y },
+            { x: cell.x, y: cell.y + 1 }, { x: cell.x, y: cell.y - 1 }
+        ];
+
+        let bestNeighborId = null;
+        let maxNeighborSize = -1;
+
+        for (const n of neighbors) {
+            const neighborId = grid.getCell(n.x, n.y);
+            if (neighborId && roomSizes[neighborId] > maxNeighborSize) {
+                maxNeighborSize = roomSizes[neighborId];
+                bestNeighborId = neighborId;
+            }
+        }
+
+        if (bestNeighborId) {
+            grid.addRoomCell(bestNeighborId, cell.x, cell.y);
+            roomSizes[bestNeighborId]++;
+        }
+    }
+}
+
+function finalizeLayout(grid) {
+  const layout = { ground: {}, level1: {} };
+  const roomIds = Object.keys(grid.roomData);
+  console.log("Finalizing layout. Rooms to process:", roomIds.length);
+
+  for (const roomId of roomIds) {
+    const bbox = grid.getBoundingBox(roomId);
+    console.log(`Processing room: ${roomId}`, bbox);
     if (bbox) {
       const roomLayout = {
         x: bbox.minX * GRID_SIZE,
@@ -277,15 +323,15 @@ function finalizeLayout(grid, rooms) {
         d: (bbox.maxY - bbox.minY + 1) * GRID_SIZE,
       };
 
-      const roomDef = ROOM_DEFS[room.id];
+      const roomDef = ROOM_DEFS[roomId];
       if (!roomDef) {
-        console.warn(`Room definition not found for ${room.id}`);
+        console.warn(`Room definition not found for ${roomId}`);
         continue;
       }
 
       const floor = roomDef.floor === 'ground' ? 'ground' : 'level1';
-      console.log(`  -> Assigning ${room.id} to floor: ${floor}`);
-      layout[floor][room.id] = roomLayout;
+      console.log(`  -> Assigning ${roomId} to floor: ${floor}`);
+      layout[floor][roomId] = roomLayout;
     }
   }
 
@@ -311,15 +357,18 @@ export function generateConstrainedLayout(seed, bW, bD, roomAreas = {}, groupId 
   const gridH = Math.floor(bD / GRID_SIZE);
   const layoutGrid = new Grid(gridW, gridH);
 
-  const rooms = Object.values(ROOM_DEFS).map(r => ({
-    id: r.id,
-    label: r.label,
-    targetArea: (roomAreas[r.id] * 1e6) || (r.w * r.d),
-  })).filter(r => r.targetArea > 0 && r.targetArea / (GRID_SIZE*GRID_SIZE) >=1);
+  const rooms = Object.values(ROOM_DEFS).map(r => {
+    const targetAreaMm2 = (roomAreas[r.id] * 1e6) || (r.w * r.d);
+    return {
+      id: r.id,
+      label: r.label,
+      targetGridCount: Math.round(targetAreaMm2 / (GRID_SIZE * GRID_SIZE)),
+  }}).filter(r => r.targetGridCount >= 1);
 
   const placedSeeds = placeRoomSeeds(layoutGrid, rooms, rng);
   expandRooms(layoutGrid, rooms, rng);
-  const finalLayout = finalizeLayout(layoutGrid, rooms);
+  fillGaps(layoutGrid, rooms);
+  const finalLayout = finalizeLayout(layoutGrid);
 
   return {
     id: `A-${groupId}-${variantIdx}`,

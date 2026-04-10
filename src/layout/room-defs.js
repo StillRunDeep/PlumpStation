@@ -38,6 +38,7 @@ export const ROOM_DEFS = {
     id: 'parking', label: '停车区域', labelEn: 'Parking Area',
     w: 10000, d: 17200, floor: 'ground',
     rotatable: false, constraints: ['crane15_cover'], color: '#d6eaf8', strokeColor: '#2471a3',
+    connectsTo: ['repair_zone'],
   },
   repair_zone: {
     id: 'repair_zone', label: '水泵维修区域', labelEn: 'Pump Maintenance Area',
@@ -85,6 +86,7 @@ export const ROOM_DEFS = {
     id: 'corridor_l1', label: '一层主走廊', labelEn: 'Level 1 Main Corridor',
     w: 1500, d: 8800, floor: 'level1',
     rotatable: true, constraints: [], color: '#f5f0e8', strokeColor: '#aaa',
+    connectsTo: ['fan_room', 'lv_control', 'clean_pump', 'rainwater'],
   },
 }
 
