@@ -491,14 +491,16 @@ svg.zoom-active {
 #btn-ag41-more:disabled, #btn-ag41-reset:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── AG4-1 inline notification ── */
-.ag41-notify {
-  padding: 8px 14px;
-  border-radius: 4px;
+.header-notify {
+  flex-grow: 1;
+  text-align: center;
   font-size: 13px;
-  margin-bottom: 10px;
+  font-weight: 600;
+  padding: 0 16px;
+  transition: color 0.3s;
 }
-.ag41-notify--ok   { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-.ag41-notify--warn { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+.header-notify.notify-ok   { color: #d4edda; }
+.header-notify.notify-warn { color: #fff3cd; }
 
 /* ── Variant groups ── */
 .variant-group { margin-bottom: 20px; }

@@ -99,14 +99,17 @@ export function evaluateTemplate(template) {
   }
 
   // Place doors
-  const doors = placeDoors(allPlacements, template);
+  const doors = placeDoors(allPlacements);
 
-  return {
+  const result = {
     ...template, // Spread the original template properties
     feasible: violations.length === 0,
     placements: allPlacements,
     violations,
     adjacency,
     doors, // Add doors to the returned object
-  }
+  };
+
+  console.log("Evaluated Template Result:", result);
+  return result;
 }

@@ -193,6 +193,8 @@ export function renderLayoutPanel(variants) {
   if (moreBtn) moreBtn.hidden = false
   const resetBtn = document.getElementById('btn-ag41-reset')
   if (resetBtn) resetBtn.hidden = false
+
+  showAg41Notify('已生成初始方案。可点击“生成方案”持续优化。', true);
 }
 
 // ── Detail view ───────────────────────────────────────────────────────
@@ -259,8 +261,5 @@ export function showAg41Notify(msg, isImproved) {
   const el = document.getElementById('ag41-notify')
   if (!el) return
   el.textContent = msg
-  el.className = 'ag41-notify ' + (isImproved ? 'ag41-notify--ok' : 'ag41-notify--warn')
-  el.hidden = false
-  clearTimeout(el._hideTimer)
-  el._hideTimer = setTimeout(() => { el.hidden = true }, 4000)
+  el.className = 'header-notify ' + (isImproved ? 'notify-ok' : 'notify-warn')
 }
