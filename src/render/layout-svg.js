@@ -16,37 +16,37 @@ const FONT = 'Microsoft YaHei,sans-serif'
  */
 export function renderLayoutSVG(variant, vw, vh, opts = {}) {
   const { showDims = true, floor = 'ground', showCrane = true } = opts
-  const { template } = variant
-  const placements = floor === 'level1' ? variant.level1Placements : variant.groundPlacements
+  const { groundPlacements, level1Placements, buildingW, buildingD, crane15, crane5 } = variant;
+  const placements = floor === 'level1' ? level1Placements : groundPlacements;
 
   const MARGIN = { top: 48, right: 48, bottom: 48, left: 56 }
   const drawW = vw - MARGIN.left - MARGIN.right
   const drawH = vh - MARGIN.top  - MARGIN.bottom
 
   // Scale to fit: px per mm
-  const ps = Math.min(drawW / template.buildingW, drawH / template.buildingD)
+  const ps = Math.min(drawW / buildingW, drawH / buildingD)
 
   // Origin (NW corner of building in SVG px)
-  const ox = MARGIN.left  + (drawW - template.buildingW * ps) / 2
-  const oy = MARGIN.top   + (drawH - template.buildingD * ps) / 2
+  const ox = MARGIN.left  + (drawW - buildingW * ps) / 2
+  const oy = MARGIN.top   + (drawH - buildingD * ps) / 2
 
   let s = _r(0, 0, vw, vh, '#f4f6f8', 'none')
 
   // Building background
-  s += _r(ox, oy, template.buildingW * ps, template.buildingD * ps, '#ffffff', '#2c3e50', 2.5)
+  s += _r(ox, oy, buildingW * ps, buildingD * ps, '#ffffff', '#2c3e50', 2.5)
 
   // Crane coverage box
   if (showCrane) {
     const showCrane15 = floor === 'ground'
     const showCrane5  = floor === 'level1'
-    if (showCrane15 && template.crane15) {
-      const c = template.crane15
+    if (showCrane15 && crane15) {
+      const c = crane15
       s += _r(ox + c.x * ps, oy + c.y * ps, c.w * ps, c.d * ps,
         'rgba(255,193,7,0.08)', '#f0a500', 1.5, 'stroke-dasharray="6,3"')
       s += _t(ox + c.x * ps + 6, oy + c.y * ps + 14, '15t 桥吊覆盖', 10, '#b7770d', 'start')
     }
-    if (showCrane5 && template.crane5) {
-      const c = template.crane5
+    if (showCrane5 && crane5) {
+      const c = crane5
       s += _r(ox + c.x * ps, oy + c.y * ps, c.w * ps, c.d * ps,
         'rgba(100,149,237,0.08)', '#5b8dd9', 1.5, 'stroke-dasharray="6,3"')
       s += _t(ox + c.x * ps + 6, oy + c.y * ps + 14, '5t 单轨吊覆盖', 10, '#2e5ca8', 'start')
@@ -54,7 +54,7 @@ export function renderLayoutSVG(variant, vw, vh, opts = {}) {
   }
 
   // Rooms
-  for (const [id, p] of Object.entries(placements)) {
+  for (const [id, p] of Object.entries(placements || {})) {
     const def = ROOM_DEFS[id]
     if (!def) continue
 
@@ -90,13 +90,13 @@ export function renderLayoutSVG(variant, vw, vh, opts = {}) {
 
   // Overall dimension annotations
   if (showDims) {
-    const bx1 = ox, bx2 = ox + template.buildingW * ps
-    const by1 = oy, by2 = oy + template.buildingD * ps
+    const bx1 = ox, bx2 = ox + buildingW * ps
+    const by1 = oy, by2 = oy + buildingD * ps
 
     s += _dh(bx1, bx2, by2 + 30,
-      `总宽 ${(template.buildingW / 1000).toFixed(1)} m`, '#1a3a5c')
+      `总宽 ${(buildingW / 1000).toFixed(1)} m`, '#1a3a5c')
     s += _dv(bx1 - 36, by1, by2,
-      `总深 ${(template.buildingD / 1000).toFixed(1)} m`, '#1a3a5c')
+      `总深 ${(buildingD / 1000).toFixed(1)} m`, '#1a3a5c')
   }
 
   // Floor label
@@ -105,7 +105,7 @@ export function renderLayoutSVG(variant, vw, vh, opts = {}) {
 
   // Scale bar (1 m)
   const barLen = ps * 1000  // 1000 mm = 1 m
-  const barX = ox, barY = oy + template.buildingD * ps + 14
+  const barX = ox, barY = oy + buildingD * ps + 14
   s += _l(barX, barY, barX + barLen, barY, '#333', 2)
   s += _l(barX, barY - 4, barX, barY + 4, '#333', 1.5)
   s += _l(barX + barLen, barY - 4, barX + barLen, barY + 4, '#333', 1.5)
@@ -118,20 +118,20 @@ export function renderLayoutSVG(variant, vw, vh, opts = {}) {
  * Render a dual-floor overview (ground + level1 side by side) for the detail view.
  */
 export function renderLayoutSVGDual(variant, vw, vh) {
-  const { template } = variant
+  const { groundPlacements, level1Placements, buildingW, buildingD, crane15, crane5 } = variant;
   const halfW = Math.floor(vw / 2) - 8
 
   const MARGIN = { top: 48, right: 32, bottom: 48, left: 44 }
   const drawW = halfW - MARGIN.left - MARGIN.right
   const drawH = vh   - MARGIN.top  - MARGIN.bottom
-  const ps    = Math.min(drawW / template.buildingW, drawH / template.buildingD)
+  const ps    = Math.min(drawW / buildingW, drawH / buildingD)
 
   const renderHalf = (placements, offsetX, floorLabel, crane) => {
-    const ox = offsetX + MARGIN.left + (drawW - template.buildingW * ps) / 2
-    const oy = MARGIN.top + (drawH - template.buildingD * ps) / 2
+    const ox = offsetX + MARGIN.left + (drawW - buildingW * ps) / 2
+    const oy = MARGIN.top + (drawH - buildingD * ps) / 2
     let s = ''
 
-    s += _r(ox, oy, template.buildingW * ps, template.buildingD * ps, '#ffffff', '#2c3e50', 2)
+    s += _r(ox, oy, buildingW * ps, buildingD * ps, '#ffffff', '#2c3e50', 2)
 
     // Crane
     if (crane) {
@@ -139,7 +139,7 @@ export function renderLayoutSVGDual(variant, vw, vh) {
         'rgba(255,193,7,0.08)', '#f0a500', 1.2, 'stroke-dasharray="5,3"')
     }
 
-    for (const [id, p] of Object.entries(placements)) {
+    for (const [id, p] of Object.entries(placements || {})) {
       const def = ROOM_DEFS[id]
       if (!def) continue
       const rx = ox + p.x * ps, ry = oy + p.y * ps
@@ -161,17 +161,17 @@ export function renderLayoutSVGDual(variant, vw, vh) {
     s += _t(offsetX + halfW / 2, MARGIN.top - 16, floorLabel, 12, '#1a5276', 'middle', 'bold')
 
     // Dim
-    const bx1 = ox, bx2 = ox + template.buildingW * ps
-    const by1 = oy, by2 = oy + template.buildingD * ps
-    s += _dh(bx1, bx2, by2 + 28, `${(template.buildingW / 1000).toFixed(1)}m`, '#1a3a5c')
-    s += _dv(bx1 - 30, by1, by2, `${(template.buildingD / 1000).toFixed(1)}m`, '#1a3a5c')
+    const bx1 = ox, bx2 = ox + buildingW * ps
+    const by1 = oy, by2 = oy + buildingD * ps
+    s += _dh(bx1, bx2, by2 + 28, `${(buildingW / 1000).toFixed(1)}m`, '#1a3a5c')
+    s += _dv(bx1 - 30, by1, by2, `${(buildingD / 1000).toFixed(1)}m`, '#1a3a5c')
 
     return s
   }
 
   let s = _r(0, 0, vw, vh, '#f4f6f8', 'none')
-  s += renderHalf(variant.groundPlacements, 0,      '地面层平面', template.crane15)
-  s += renderHalf(variant.level1Placements, halfW + 16, '一层平面',   template.crane5)
+  s += renderHalf(groundPlacements, 0,      '地面层平面', crane15)
+  s += renderHalf(level1Placements, halfW + 16, '一层平面',   crane5)
 
   // Divider
   s += _l(halfW + 8, 20, halfW + 8, vh - 20, '#ccc', 1, '5,3')

@@ -1,4 +1,4 @@
-import { generateTemplateA } from '../layout/grower.js'
+import { generateConstrainedLayout } from '../layout/layout-generator.js'
 import { getDefaultUserParams, getUserConfirmedParams } from '../layout/user-params.js'
 
 /**
@@ -20,8 +20,8 @@ export async function runAG41() {
   // 生成 9 个方案
   for (let i = 0; i < 9; i++) {
     // 使用当前时间戳和循环索引作为种子，确保每次生成都不同
-    const seed = Date.now() + i;
-    const t = generateTemplateA(seed, userParams.buildingW, userParams.buildingD, userParams.roomTargetAreas, 'S', i + 1);
+    const seed = Math.floor(Math.random() * 100000) + i;
+    const t = generateConstrainedLayout(seed, userParams.buildingW, userParams.buildingD, userParams.roomTargetAreas, 'S', i + 1);
     variants.push(t);
   }
 

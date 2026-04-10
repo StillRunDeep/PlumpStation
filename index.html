@@ -386,9 +386,11 @@
         <div class="card-header">
           <span>AG4-1</span>
           <span class="agent-label">建筑平面布局生成</span>
-          <span class="badge" id="ag41-badge">12 种方案</span>
-          <button id="btn-ag41-more" hidden>更多方案</button>
-          <button id="btn-ag41-reset" hidden>重制方案</button>
+          <span class="badge" id="ag41-badge">最优方案推荐</span>
+          <div class="card-header-buttons">
+            <button id="btn-ag41-more" hidden>更多方案</button>
+            <button id="btn-ag41-reset" hidden>重置方案</button>
+          </div>
         </div>
         <div class="card-body">
           <div id="ag41-notify" hidden></div>
@@ -404,9 +406,14 @@
                 <button class="svg-zoom-btn" id="btn-ag41-zout" title="缩小">－</button>
               </div>
             </div>
-            <svg id="svg-ag41" viewBox="0 0 1080 560"
-                 style="display:block;width:100%;height:560px;cursor:grab;background:#f4f6f8">
-            </svg>
+            <div class="layout-detail-main-wrap" style="display: flex;">
+              <svg id="svg-ag41" viewBox="0 0 1080 560"
+                   style="display:block;width:60%;height:560px;cursor:grab;background:#f4f6f8">
+              </svg>
+              <div id="debug-grid-container" style="width:40%; height:560px; border-left: 1px solid #ccc; padding-left: 10px; box-sizing: border-box;">
+                <h4 style="margin-top:0; margin-bottom: 10px; font-size: 12px; color: #555;">调试视图：网格和种子</h4>
+              </div>
+            </div>
           </div>
         </div>
       </div>

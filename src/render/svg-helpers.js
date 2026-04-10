@@ -31,6 +31,63 @@ export function _dh(x1, x2, y, label, clr) {
   ].join('')
 }
 
+function _c(cx, cy, r, fill) {
+  return `<circle cx="${(+cx).toFixed(1)}" cy="${(+cy).toFixed(1)}" r="${r}" fill="${fill}"/>`
+}
+
+export function renderDebugGrid(debugData, width, height) {
+  if (!debugData) return '';
+
+  const { grid, seeds } = debugData;
+  const gridW = grid.width;
+  const gridH = grid.height;
+
+  // Fit grid into the container
+  const cellSize = Math.min(width / gridW, height / gridH);
+  const ox = (width - gridW * cellSize) / 2;
+  const oy = (height - gridH * cellSize) / 2;
+
+  let s = `<svg width="${width}" height="${height}" style="font-family: monospace; font-size: 10px;">`;
+  s += _r(0, 0, width, height, '#f9f9f9', 'none');
+
+  // Cell colors based on room ID
+  const colors = {};
+  const FgColors = {};
+  const roomIds = Object.keys(grid.roomData);
+  roomIds.forEach((id, i) => {
+    // Simple hashing for stable colors
+    let hash = 0;
+    for (let j = 0; j < id.length; j++) {
+      hash = id.charCodeAt(j) + ((hash << 5) - hash);
+    }
+    const hue = hash % 360;
+    colors[id] = `hsl(${hue}, 70%, 85%)`;
+    FgColors[id] = `hsl(${hue}, 70%, 35%)`;
+  });
+
+  // Draw grid cells
+  for (let y = 0; y < gridH; y++) {
+    for (let x = 0; x < gridW; x++) {
+      const roomId = grid.getCell(x, y);
+      const fill = roomId ? colors[roomId] : '#fff';
+      s += _r(ox + x * cellSize, oy + y * cellSize, cellSize, cellSize, fill, '#e0e0e0', 0.5);
+    }
+  }
+
+  // Draw seeds on top
+  if (seeds) {
+    for (const [id, pos] of Object.entries(seeds)) {
+      const cx = ox + (pos.x + 0.5) * cellSize;
+      const cy = oy + (pos.y + 0.5) * cellSize;
+      s += _c(cx, cy, cellSize * 0.3, FgColors[id] || '#c0392b');
+      s += _t(cx, cy + 2, id.slice(0,3), 8, '#fff');
+    }
+  }
+
+  s += '</svg>';
+  return s;
+}
+
 // Vertical dimension line with arrows and label
 export function _dv(x, y1, y2, label, clr) {
   const tk = 8, as = 6

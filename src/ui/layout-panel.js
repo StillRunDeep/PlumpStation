@@ -1,4 +1,5 @@
 import { renderLayoutSVG, renderLayoutSVGDual } from '../render/layout-svg.js'
+import { renderDebugGrid } from '../render/svg-helpers.js'
 import { initSvgZoomPan } from '../render/zoom-pan.js'
 
 // Module-level state
@@ -9,7 +10,7 @@ const VW = 1080, VH = 560
 // ── Group metadata ────────────────────────────────────────────────────
 
 const GROUP_LABELS = {
-  'S':    { title: '用户指定尺寸（同底面积基准）', subtitle: '5 个方案', color: '#1a3a5c' },
+  'S':    { title: '方案库', subtitle: '', color: '#1a3a5c' },
   'R1.0': { title: '长宽比 1.0（方形）',           subtitle: '3 个方案', color: '#1a6535' },
   'R1.2': { title: '长宽比 1.2',                   subtitle: '3 个方案', color: '#1a6535' },
   'R1.5': { title: '长宽比 1.5',                   subtitle: '3 个方案', color: '#1a6535' },
@@ -29,16 +30,15 @@ function renderComparisonTable(variants) {
 
   let lastGroupId = null
   const rows = variants.map((v, i) => {
-    const t   = v.template
     const bd  = v.breakdown || {}
     const mustSat = (v.adjacency?.satisfied  || []).filter(a => a.type === 'must').length
     const mustTot = mustSat + (v.adjacency?.violated || []).filter(a => a.type === 'must').length
     const violCell = v.violations.length === 0
       ? `<span style="color:#27ae60">✓</span>`
       : `<span style="color:#c0392b">⚠ ${v.violations.length}</span>`
-    const area = Math.round(t.buildingW * t.buildingD / 1e6)
+    const area = Math.round(v.buildingW * v.buildingD / 1e6)
     const eff  = v.spaceEfficiency != null ? (v.spaceEfficiency * 100).toFixed(1) + '%' : '—'
-    const ar   = t.aspectRatio != null ? t.aspectRatio.toFixed(2) : '—'
+    const ar   = v.aspectRatio != null ? v.aspectRatio.toFixed(2) : '—'
 
     const bdDetail = `
       <details><summary style="cursor:pointer;font-size:11px;color:#666">明细</summary>
@@ -55,15 +55,15 @@ function renderComparisonTable(variants) {
 
     // Insert a group-separator row when the groupId changes
     let groupRow = ''
-    if (t.groupId !== lastGroupId) {
-      lastGroupId = t.groupId
-      const gl = groupLabel(t)
-      const dims = `${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m`
+    if (v.groupId !== lastGroupId) {
+      lastGroupId = v.groupId
+      const gl = groupLabel(v)
+      const dims = `${(v.buildingW / 1000).toFixed(1)} m × ${(v.buildingD / 1000).toFixed(1)} m`
       groupRow = `
         <tr>
           <td colspan="9" style="background:${gl.color};color:#fff;padding:5px 10px;
               font-size:12px;font-weight:700;letter-spacing:.5px">
-            ${gl.title}（${dims}）&ensp;<span style="opacity:.75;font-weight:400">${gl.subtitle}</span>
+            ${gl.title}（${dims}）${gl.subtitle ? `&ensp;<span style="opacity:.75;font-weight:400">${gl.subtitle}</span>` : ''}
           </td>
         </tr>`
     }
@@ -71,7 +71,7 @@ function renderComparisonTable(variants) {
     return groupRow + `
       <tr style="cursor:pointer;background:${i % 2 === 0 ? '#f8fafc' : '#fff'}" onclick="window._ag41SelectVariant(${i})">
         <td style="text-align:center;font-weight:600">${i + 1}</td>
-        <td><strong>${t.id}</strong><br><span style="font-size:11px;color:#555">${t.label}</span></td>
+        <td><strong>${v.id}</strong><br><span style="font-size:11px;color:#555">${v.label}</span></td>
         <td style="text-align:center;font-size:11px">${ar}</td>
         <td style="text-align:right;font-weight:700;color:#1a5276">${v.score}</td>
         <td style="text-align:right">${area}</td>
@@ -113,16 +113,16 @@ function renderVariantCards(variants) {
   const flush = () => {
     if (!currentGroup) return
     const gl = groupLabel({ groupId: currentGroup })
-    const firstV = variants.find(v => v.template.groupId === currentGroup)
+    const firstV = variants.find(v => v.groupId === currentGroup)
     const dims   = firstV
-      ? `${(firstV.template.buildingW / 1000).toFixed(1)} m × ${(firstV.template.buildingD / 1000).toFixed(1)} m`
+      ? `${(firstV.buildingW / 1000).toFixed(1)} m × ${(firstV.buildingD / 1000).toFixed(1)} m`
       : ''
     sections.push(`
       <div class="variant-group">
         <div class="variant-group-header" style="background:${gl.color}">
           <span>${gl.title}</span>
           <span class="vg-dims">${dims}</span>
-          <span class="vg-count">${gl.subtitle}</span>
+          ${gl.subtitle ? `<span class="vg-count">${gl.subtitle}</span>` : ''}
         </div>
         <div class="variant-group-cards">
           ${currentCards.join('')}
@@ -132,10 +132,9 @@ function renderVariantCards(variants) {
   }
 
   variants.forEach((v, i) => {
-    const t = v.template
-    if (t.groupId !== currentGroup) {
+    if (v.groupId !== currentGroup) {
       flush()
-      currentGroup = t.groupId
+      currentGroup = v.groupId
     }
 
     const thumbSvg = renderLayoutSVG(v, 360, 200, { showDims: false, showCrane: true })
@@ -143,14 +142,14 @@ function renderVariantCards(variants) {
       <div class="variant-card ${i === 0 ? 'selected' : ''}" data-idx="${i}"
            onclick="window._ag41SelectVariant(${i})">
         <div class="vc-header">
-          <span>方案 ${t.id}</span>
+          <span>方案 ${v.id}</span>
           <span class="vc-score">得分 ${v.score}</span>
         </div>
         <svg class="vc-thumb" viewBox="0 0 360 200">${thumbSvg}</svg>
-        <div class="vc-desc">${t.desc}</div>
+        <div class="vc-desc">${v.desc}</div>
         <div class="vc-metrics">
-          ${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m
-          &nbsp;|&nbsp; ${Math.round(t.buildingW * t.buildingD / 1e6)} m²
+          ${(v.buildingW / 1000).toFixed(1)} m × ${(v.buildingD / 1000).toFixed(1)} m
+          &nbsp;|&nbsp; ${Math.round(v.buildingW * v.buildingD / 1e6)} m²
           &nbsp;|&nbsp; 有效率 ${v.spaceEfficiency != null ? Math.round(v.spaceEfficiency * 100) + '%' : '—'}
           ${v.violations.length > 0 ? `&nbsp;|&nbsp; <span style="color:#c0392b">⚠ ${v.violations.length} 项约束</span>` : ''}
         </div>
@@ -184,9 +183,8 @@ export function renderLayoutPanel(variants) {
   container.innerHTML = renderVariantCards(variants)
 
   // Update badge
-  const aCount = variants.filter(v => v.template.id?.startsWith('A')).length
   const badge  = document.getElementById('ag41-badge')
-  if (badge) badge.textContent = `${aCount} 种模版A方案`
+  if (badge) badge.textContent = '最优方案推荐'
 
   // Show first variant detail
   selectVariant(0)
@@ -214,13 +212,24 @@ function selectVariant(idx) {
   initSvgZoomPan(svg, VW, VH, { zIn: 'btn-ag41-zin', zOut: 'btn-ag41-zout', zRst: 'btn-ag41-rst' })
 
   // Update detail header
-  const t      = v.template
   const header = document.getElementById('layout-detail-title')
   if (header) {
     header.textContent =
-      `方案 ${t.id}：${t.label}  —  ` +
-      `${(t.buildingW / 1000).toFixed(1)} m × ${(t.buildingD / 1000).toFixed(1)} m  ` +
+      `方案 ${v.id}：${v.label}  —  ` +
+      `${(v.buildingW / 1000).toFixed(1)} m × ${(v.buildingD / 1000).toFixed(1)} m  ` +
       `得分 ${v.score}`
+  }
+
+  // Update debug view
+  const debugContainer = document.getElementById('debug-grid-container')
+  if (debugContainer) {
+    if (v._debug) {
+      debugContainer.innerHTML =
+        '<h4 style="margin-top:0; margin-bottom: 10px; font-size: 12px; color: #555;">调试视图：网格和种子</h4>' +
+        renderDebugGrid(v._debug, 380, 540);
+    } else {
+      debugContainer.innerHTML = '';
+    }
   }
 
   document.getElementById('layout-detail-wrap').hidden = false
